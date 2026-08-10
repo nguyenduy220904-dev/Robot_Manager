@@ -805,14 +805,14 @@
 (function(){
   // --- Firebase setup ---
   const firebaseConfig = {
-  apiKey: "AIzaSyBxtE_dwnXmJltx2HOGU_eFFyd_NnA4KAY",
-  authDomain: "robot-manager-b5d1e.firebaseapp.com",
-  projectId: "robot-manager-b5d1e",
-  storageBucket: "robot-manager-b5d1e.firebasestorage.app",
-  messagingSenderId: "603247460540",
-  appId: "1:603247460540:web:4dbf9cbe16745ae26550b9",
-  measurementId: "G-0X416NGH1D"
-};
+    apiKey: "AIzaSyBxtE_dwnXmJltx2HOGU_eFFyd_NnA4KAY",
+    authDomain: "robot-manager-b5d1e.firebaseapp.com",
+    projectId: "robot-manager-b5d1e",
+    storageBucket: "robot-manager-b5d1e.firebasestorage.app",
+    messagingSenderId: "603247460540",
+    appId: "1:603247460540:web:4dbf9cbe16745ae26550b9",
+    measurementId: "G-0X416NGH1D"
+  };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
@@ -1077,6 +1077,16 @@
     });
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function renderRobots(){
     robotsGrid.innerHTML = '';
     if(robots.length === 0){
@@ -1096,7 +1106,6 @@
       const card = document.createElement('div');
       card.className = 'robot-card';
       const statusInfo = statusMap[robot.status] || statusMap['integrating'];
-      const progressPercent = ((statusInfo.step + 1) / 6) * 100;
 
       card.innerHTML = `
         <div class="robot-header">
@@ -1128,12 +1137,12 @@
       });
 
       card.querySelectorAll('[data-action]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', () => {
           const action = btn.dataset.action;
           const robotId = btn.dataset.robotId;
-          const robot = robots.find(r => r.id === robotId);
-          if(action === 'edit') openRobotModal(robot);
-          else if(action === 'notes') openNotesModal(robot);
+          const targetRobot = robots.find(r => r.id === robotId);
+          if(action === 'edit') openRobotModal(targetRobot);
+          else if(action === 'notes') openNotesModal(targetRobot);
           else if(action === 'delete') deleteRobot(robotId);
         });
       });
@@ -1142,15 +1151,45 @@
     });
   }
 
-  btnAddRobot.addEventListener('click', () => {
-    currentEditingRobot = null;
-    modalRobotTitle.textContent = 'Thêm robot mới';
-    robotNameInput.value = '';
-    robotDescInput.value = '';
-    robotStatusSelect.value = 'integrating';
+  function openRobotModal(robot){
+    currentEditingRobot = robot || null;
+    if(robot){
+      modalRobotTitle.textContent = 'Chỉnh sửa robot';
+      robotNameInput.value = robot.name || '';
+      robotDescInput.value = robot.description || '';
+      robotStatusSelect.value = robot.status || 'integrating';
+    } else {
+      modalRobotTitle.textContent = 'Thêm robot mới';
+      robotNameInput.value = '';
+      robotDescInput.value = '';
+      robotStatusSelect.value = 'integrating';
+    }
     robotModal.classList.add('show');
     robotNameInput.focus();
-  });
+  }
+
+  function openNotesModal(robot){
+    currentEditingRobot = robot;
+    modalNotesTitle.textContent = 'Ghi chú - ' + robot.name;
+    robotNotesInput.value = robot.notes || '';
+    notesModal.classList.add('show');
+  }
+
+  async function deleteRobot(robotId){
+    if(!isAdmin){
+      alert('Bạn cần quyền quản trị viên để xóa.');
+      return;
+    }
+    if(confirm('Bạn có chắc chắn muốn xóa robot này?')){
+      try{
+        await robotsRef.doc(robotId).delete();
+      }catch(e){
+        alert('Lỗi khi xóa robot: ' + e.message);
+      }
+    }
+  }
+
+  btnAddRobot.addEventListener('click', () => openRobotModal(null));
 
   document.getElementById('closeRobotModal').addEventListener('click', () => {
     robotModal.classList.remove('show');
@@ -1186,29 +1225,15 @@
         data.createdAt = new Date().toISOString();
         await robotsRef.add(data);
       }
-
       robotModal.classList.remove('show');
     }catch(e){
-      alert('Lỗi: ' + e.message);
+      console.error('Save error:', e);
+      alert('Không thể lưu dữ liệu: ' + e.message);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'Lưu robot';
     }
-
-    btn.disabled = false;
-    btn.textContent = 'Lưu robot';
   });
-
-  function openRobotModal(robot){
-    if(!isAdmin){
-      alert('Chỉ admin mới có thể chỉnh sửa robot.');
-      return;
-    }
-    currentEditingRobot = robot;
-    modalRobotTitle.textContent = 'Chỉnh sửa robot';
-    robotNameInput.value = robot.name;
-    robotDescInput.value = robot.description || '';
-    robotStatusSelect.value = robot.status || 'integrating';
-    robotModal.classList.add('show');
-    robotNameInput.focus();
-  }
 
   document.getElementById('closeNotesModal').addEventListener('click', () => {
     notesModal.classList.remove('show');
@@ -1220,7 +1245,6 @@
 
   document.getElementById('submitNotesBtn').addEventListener('click', async () => {
     if(!currentEditingRobot) return;
-
     const btn = document.getElementById('submitNotesBtn');
     btn.disabled = true;
     btn.textContent = 'Đang lưu...';
@@ -1232,38 +1256,16 @@
       });
       notesModal.classList.remove('show');
     }catch(e){
-      alert('Lỗi: ' + e.message);
+      console.error('Notes error:', e);
+      alert('Không thể cập nhật ghi chú.');
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'Cập nhật';
     }
-
-    btn.disabled = false;
-    btn.textContent = 'Cập nhật';
   });
 
-  function openNotesModal(robot){
-    currentEditingRobot = robot;
-    modalNotesTitle.textContent = `Ghi chú: ${robot.name}`;
-    robotNotesInput.value = robot.notes || '';
-    notesModal.classList.add('show');
-    robotNotesInput.focus();
-  }
-
-  async function deleteRobot(robotId){
-    if(!confirm('Xoá robot này?')) return;
-    try{
-      await robotsRef.doc(robotId).delete();
-    }catch(e){
-      alert('Lỗi: ' + e.message);
-    }
-  }
-
-  function escapeHtml(str){
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-  }
-
-  // --- Init ---
-  ensureAccessDoc().then(watchAccess);
+  ensureAccessDoc();
+  watchAccess();
   listenRobots();
 })();
 </script>
