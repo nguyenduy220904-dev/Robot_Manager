@@ -769,24 +769,6 @@
   </div>
 </div>
 
-<!-- Edit Notes Modal -->
-<div class="modal" id="notesModal">
-  <div class="modal-box">
-    <div class="modal-title">
-      <span id="modalNotesTitle">Ghi chú robot</span>
-      <button class="modal-close" id="closeNotesModal">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Ghi chú nội bộ</label>
-      <textarea id="robotNotesInput" class="form-textarea" placeholder="Ghi chú chi tiết về tiến trình, vấn đề cần lưu ý..."></textarea>
-    </div>
-    <div class="form-actions">
-      <button class="btn-cancel" id="cancelNotesBtn">Đóng</button>
-      <button class="btn-submit" id="submitNotesBtn">Cập nhật</button>
-    </div>
-  </div>
-</div>
-
 <!-- Login Modal -->
 <div class="pin-modal" id="pinModal">
   <div class="pin-box">
@@ -827,13 +809,10 @@
   const robotsGrid = document.getElementById('robotsGrid');
   const btnAddRobot = document.getElementById('btnAddRobot');
   const robotModal = document.getElementById('robotModal');
-  const notesModal = document.getElementById('notesModal');
   const robotNameInput = document.getElementById('robotNameInput');
   const robotDescInput = document.getElementById('robotDescInput');
   const robotStatusSelect = document.getElementById('robotStatusSelect');
-  const robotNotesInput = document.getElementById('robotNotesInput');
   const modalRobotTitle = document.getElementById('modalRobotTitle');
-  const modalNotesTitle = document.getElementById('modalNotesTitle');
 
   const statusMap = {
     'integrating': { emoji: '🔧', text: 'Đang tích hợp', step: 0 },
@@ -1110,40 +1089,25 @@
       card.innerHTML = `
         <div class="robot-header">
           <div class="robot-icon">${robot.emoji || '🤖'}</div>
-          <div class="robot-name" title="Click để xem/chỉnh sửa ghi chú">${escapeHtml(robot.name)}</div>
-        </div>
-        <div class="robot-status">
-          <div class="status-label">Tiến độ tích hợp</div>
-          <div class="status-bar">
-            ${[0,1,2,3,4,5].map(i => `
-              <div class="status-segment ${i <= statusInfo.step ? (i === statusInfo.step ? 'current' : 'active') : ''}"></div>
-            `).join('')}
-          </div>
-          <div class="status-text">${statusInfo.emoji} ${statusInfo.text}</div>
-          <div class="status-step">Bước ${statusInfo.step + 1} / 6</div>
+          <div class="robot-name" title="Click để xem/chỉnh sửa">${escapeHtml(robot.name)}</div>
         </div>
         <div style="margin: 12px 0; padding: 12px; background: var(--circuit); border-radius: 4px; font-size: 12px; line-height: 1.4; color: var(--text);">
-          ${robot.description ? escapeHtml(robot.description) : '<em>Không có mô tả</em>'}
+          ${robot.description ? escapeHtml(robot.description) : '<em>Không có ghi chú</em>'}
         </div>
         <div class="robot-actions">
-          <button class="btn-small" data-robot-id="${robot.id}" data-action="edit">✏️ Sửa</button>
-          <button class="btn-small" data-robot-id="${robot.id}" data-action="notes">📝 Ghi chú</button>
           ${isAdmin ? `<button class="btn-small btn-delete" data-robot-id="${robot.id}" data-action="delete">🗑️ Xoá</button>` : ''}
         </div>
       `;
 
       card.querySelector('.robot-name').addEventListener('click', () => {
-        openNotesModal(robot);
+        openRobotModal(robot);
       });
 
       card.querySelectorAll('[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
           const action = btn.dataset.action;
           const robotId = btn.dataset.robotId;
-          const targetRobot = robots.find(r => r.id === robotId);
-          if(action === 'edit') openRobotModal(targetRobot);
-          else if(action === 'notes') openNotesModal(targetRobot);
-          else if(action === 'delete') deleteRobot(robotId);
+          if(action === 'delete') deleteRobot(robotId);
         });
       });
 
@@ -1166,13 +1130,6 @@
     }
     robotModal.classList.add('show');
     robotNameInput.focus();
-  }
-
-  function openNotesModal(robot){
-    currentEditingRobot = robot;
-    modalNotesTitle.textContent = 'Ghi chú - ' + robot.name;
-    robotNotesInput.value = robot.notes || '';
-    notesModal.classList.add('show');
   }
 
   async function deleteRobot(robotId){
@@ -1232,35 +1189,6 @@
     }finally{
       btn.disabled = false;
       btn.textContent = 'Lưu robot';
-    }
-  });
-
-  document.getElementById('closeNotesModal').addEventListener('click', () => {
-    notesModal.classList.remove('show');
-  });
-
-  document.getElementById('cancelNotesBtn').addEventListener('click', () => {
-    notesModal.classList.remove('show');
-  });
-
-  document.getElementById('submitNotesBtn').addEventListener('click', async () => {
-    if(!currentEditingRobot) return;
-    const btn = document.getElementById('submitNotesBtn');
-    btn.disabled = true;
-    btn.textContent = 'Đang lưu...';
-
-    try{
-      await robotsRef.doc(currentEditingRobot.id).update({
-        notes: robotNotesInput.value.trim(),
-        updatedAt: new Date().toISOString()
-      });
-      notesModal.classList.remove('show');
-    }catch(e){
-      console.error('Notes error:', e);
-      alert('Không thể cập nhật ghi chú.');
-    }finally{
-      btn.disabled = false;
-      btn.textContent = 'Cập nhật';
     }
   });
 
