@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Manager — Quản lý Robot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+  :root {
+    --steel: #1A3A52;
+    --steel-light: #2C5282;
+    --circuit: #E8F4F8;
+    --circuit-line: #A0C4D4;
+    --accent: #FF6B4A;
+    --success: #4CAF50;
+    --warning: #FFC107;
+    --process: #2196F3;
+    --text: #1F3A2E;
+    --text-soft: #4B5D4F;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  
+  body {
+    background: linear-gradient(135deg, #E8F4F8 0%, #F0F8FB 100%);
+    color: var(--text);
+    font-family: 'Courier Prime', monospace;
+    min-height: 100vh;
+    padding: 32px 16px 80px;
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  header.cover {
+    text-align: center;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid var(--steel);
+  }
+
+  header.cover .eyebrow {
+    letter-spacing: 2px;
+    font-size: 11px;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  header.cover h1 {
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 36px;
+    margin: 8px 0 4px;
+    letter-spacing: 0.5px;
+    color: var(--steel);
+  }
+
+  header.cover .subtitle {
+    font-size: 14px;
+    color: var(--text-soft);
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .btn-primary {
+    background: var(--steel);
+    color: var(--circuit);
+    border: none;
+    padding: 11px 22px;
+    border-radius: 4px;
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover { background: var(--steel-light); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .live-clock {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .clock-time {
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 1px;
+    color: var(--steel);
+  }
+
+  .clock-date {
+    font-size: 12px;
+    color: var(--text-soft);
+    margin-top: 4px;
+  }
+
+  .robots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .robot-card {
+    background: #fff;
+    border: 2px solid var(--circuit-line);
+    border-radius: 6px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(26, 58, 82, 0.08);
+    transition: all 0.3s;
+  }
+
+  .robot-card:hover {
+    border-color: var(--steel);
+    box-shadow: 0 4px 16px rgba(26, 58, 82, 0.15);
+  }
+
+  .robot-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .robot-icon {
+    font-size: 28px;
+  }
+
+  .robot-name {
+    font-family: 'Zilla Slab', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--steel);
+    cursor: pointer;
+    transition: color 0.2s;
+    flex: 1;
+  }
+
+  .robot-name:hover {
+    color: var(--accent);
+  }
+
+  .robot-status {
+    margin: 16px 0;
+  }
+
+  .status-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-soft);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+
+  .status-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--circuit-line);
+    margin-bottom: 8px;
+  }
+
+  .status-segment {
+    flex: 0 0 16.66%;
+    background: var(--circuit-line);
+    position: relative;
+  }
+
+  .status-segment.active {
+    background: var(--success);
+    animation: pulse 1.5s infinite;
+  }
+
+  .status-segment.current {
+    background: var(--process);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .status-text {
+    font-size: 13px;
+    color: var(--steel);
+    font-weight: 700;
+  }
+
+  .status-step {
+    font-size: 11px;
+    color: var(--text-soft);
+    margin-top: 6px;
+  }
+
+  .robot-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .btn-small {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--circuit);
+    border: 1px solid var(--circuit-line);
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--steel);
+    transition: all 0.2s;
+  }
+
+  .btn-small:hover {
+    background: var(--steel);
+    border-color: var(--steel);
+    color: var(--circuit);
+  }
+
+  .btn-delete {
+    background: #fff;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-delete:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-soft);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .empty-text {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* --- Modals --- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 58, 82, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 600;
+    padding: 20px;
+  }
+
+  .modal.show { display: flex; }
+
+  .modal-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    width: 100%;
+    max-width: 450px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(26, 58, 82, 0.25);
+    border: 1px solid var(--circuit-line);
+  }
+
+  .modal-title {
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 18px;
+    color: var(--steel);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-soft);
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-soft);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--circuit-line);
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    background: var(--circuit);
+    color: var(--text);
+    transition: border-color 0.2s;
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: 2px solid var(--steel);
+    outline-offset: 1px;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .btn-cancel {
+    flex: 1;
+    padding: 11px;
+    background: #fff;
+    border: 1px solid var(--circuit-line);
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-soft);
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover {
+    background: var(--circuit);
+  }
+
+  .btn-submit {
+    flex: 1;
+    padding: 11px;
+    background: var(--steel);
+    border: none;
+    border-radius: 4px;
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--circuit);
+    transition: all 0.2s;
+  }
+
+  .btn-submit:hover { background: var(--steel-light); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* --- Gate --- */
+  .gate-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--circuit);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: 24px;
+  }
+
+  .gate-overlay.show { display: flex; }
+
+  .gate-box {
+    text-align: center;
+    max-width: 320px;
+  }
+
+  .gate-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .gate-title {
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: var(--steel);
+  }
+
+  .gate-subtitle {
+    font-size: 13px;
+    color: var(--text-soft);
+    line-height: 1.5;
+    margin-bottom: 22px;
+  }
+
+  .gate-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 22px;
+  }
+
+  .gate-dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-soft);
+    opacity: 0.3;
+    animation: gatePulse 1.2s infinite ease-in-out;
+  }
+
+  .gate-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .gate-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes gatePulse {
+    0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+    40% { opacity: 1; transform: scale(1); }
+  }
+
+  .gate-admin-link {
+    cursor: pointer;
+    color: var(--steel);
+    font-weight: 700;
+  }
+
+  .gate-retry-btn {
+    background: var(--steel);
+    color: var(--circuit);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .gate-retry-btn:hover { opacity: 0.88; }
+
+  /* --- Admin FAB --- */
+  .admin-fab {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--steel);
+    color: var(--circuit);
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 300;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(26, 58, 82, 0.2);
+  }
+
+  .admin-fab:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .admin-fab.is-admin {
+    width: auto;
+    border-radius: 24px;
+    padding: 0 16px;
+    font-size: 12px;
+    font-weight: 700;
+    gap: 6px;
+  }
+
+  .admin-panel {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 58, 82, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 650;
+    padding: 20px;
+  }
+
+  .admin-panel.show { display: flex; }
+
+  .admin-panel-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    width: 100%;
+    max-width: 380px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(26, 58, 82, 0.25);
+    border: 1px solid var(--circuit-line);
+  }
+
+  .admin-panel-title {
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--steel);
+  }
+
+  .admin-panel-title button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-soft);
+  }
+
+  .empty-pending {
+    text-align: center;
+    color: var(--text-soft);
+    font-size: 13px;
+    font-style: italic;
+    padding: 20px 0;
+  }
+
+  .pending-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--circuit-line);
+  }
+
+  .pending-info {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .pending-time {
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+
+  .pending-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .pending-actions button {
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--steel);
+  }
+
+  .approve-btn {
+    background: var(--steel);
+    color: var(--circuit);
+  }
+
+  .deny-btn {
+    background: #fff;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .pin-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 58, 82, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 620;
+    padding: 20px;
+  }
+
+  .pin-modal.show { display: flex; }
+
+  .pin-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    width: 100%;
+    max-width: 300px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(26, 58, 82, 0.25);
+    border: 1px solid var(--circuit-line);
+  }
+
+  .pin-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  .pin-title {
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: var(--steel);
+  }
+
+  .pin-box input {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid var(--circuit-line);
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    background: var(--circuit);
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .pin-box input:focus {
+    outline: 2px solid var(--steel);
+    outline-offset: 1px;
+  }
+
+  .pin-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .pin-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--circuit-line);
+  }
+
+  .pin-confirm {
+    background: var(--steel);
+    color: var(--circuit);
+    border-color: var(--steel);
+  }
+
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-soft);
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--circuit-line);
+  }
+</style>
+</head>
+<body>
+
+<div class="gate-overlay show" id="gateOverlay">
+  <div class="gate-box">
+    <div class="gate-icon" id="gateIcon">🔒</div>
+    <div class="gate-title" id="gateTitle">Đang chờ duyệt truy cập</div>
+    <div class="gate-subtitle" id="gateSubtitle">Yêu cầu của bạn đã được gửi. Trang sẽ tự mở ra khi được <span class="gate-admin-link" id="gateAdminLink">quản trị viên</span> duyệt.</div>
+    <div class="gate-dots" id="gateDots"><span></span><span></span><span></span></div>
+    <button class="gate-retry-btn" id="gateRetryBtn" type="button" style="display:none;">Gửi yêu cầu lại</button>
+  </div>
+</div>
+
+<button class="admin-fab" id="adminFab" title="Quản lý truy cập">🔑</button>
+
+<div class="admin-panel" id="adminPanel">
+  <div class="admin-panel-box">
+    <div class="admin-panel-title">
+      <span>Yêu cầu chờ duyệt</span>
+      <button id="closeAdminPanel" type="button">✕</button>
+    </div>
+    <div id="pendingList"></div>
+  </div>
+</div>
+
+<div class="page">
+  <header class="cover">
+    <div class="eyebrow">⚙️ Hệ thống quản lý</div>
+    <h1>Robot Manager</h1>
+    <div class="subtitle">Theo dõi trạng thái tích hợp robot thời gian thực</div>
+    <div class="header-actions">
+      <button class="btn-primary" id="btnAddRobot">➕ Thêm robot mới</button>
+    </div>
+  </header>
+
+  <div class="live-clock">
+    <div class="clock-time" id="clockTime">--:--:--</div>
+    <div class="clock-date" id="clockDate">-- -- --</div>
+  </div>
+
+  <div class="robots-grid" id="robotsGrid">
+    <!-- Robot cards injected here -->
+  </div>
+
+  <footer>Robot Manager © 2024 | Quản lý trạng thái robot tích hợp</footer>
+</div>
+
+<!-- Add/Edit Robot Modal -->
+<div class="modal" id="robotModal">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span id="modalRobotTitle">Thêm robot mới</span>
+      <button class="modal-close" id="closeRobotModal">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tên robot</label>
+      <input type="text" id="robotNameInput" class="form-input" placeholder="Vd: ROBOT-A1, ABB-001...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mô tả</label>
+      <textarea id="robotDescInput" class="form-textarea" placeholder="Mô tả chi tiết về robot..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Trạng thái</label>
+      <select id="robotStatusSelect" class="form-select">
+        <option value="integrating">🔧 Đang tích hợp</option>
+        <option value="integrated">✅ Đã tích hợp</option>
+        <option value="waiting-software">⌛ Đang đợi cài software</option>
+        <option value="waiting-calib">🎛️ Đang đợi calib</option>
+        <option value="completed">🎉 Hoàn thành</option>
+        <option value="shipped">📦 Đã xuất</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" id="cancelRobotBtn">Hủy</button>
+      <button class="btn-submit" id="submitRobotBtn">Lưu robot</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Notes Modal -->
+<div class="modal" id="notesModal">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span id="modalNotesTitle">Ghi chú robot</span>
+      <button class="modal-close" id="closeNotesModal">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ghi chú nội bộ</label>
+      <textarea id="robotNotesInput" class="form-textarea" placeholder="Ghi chú chi tiết về tiến trình, vấn đề cần lưu ý..."></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" id="cancelNotesBtn">Đóng</button>
+      <button class="btn-submit" id="submitNotesBtn">Cập nhật</button>
+    </div>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div class="pin-modal" id="pinModal">
+  <div class="pin-box">
+    <div class="pin-icon">🔐</div>
+    <div class="pin-title">Đăng nhập admin</div>
+    <input type="email" id="authEmailInput" class="form-input" placeholder="Email" autocomplete="username">
+    <input type="password" id="pinInput" class="form-input" placeholder="Mật khẩu" autocomplete="current-password">
+    <div class="pin-actions">
+      <button class="btn-cancel" id="pinCancel" type="button">Hủy</button>
+      <button class="pin-confirm" id="pinConfirm" type="button">Xác nhận</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // --- Firebase setup ---
+  const firebaseConfig = {
+  apiKey: "AIzaSyBxtE_dwnXmJltx2HOGU_eFFyd_NnA4KAY",
+  authDomain: "robot-manager-b5d1e.firebaseapp.com",
+  projectId: "robot-manager-b5d1e",
+  storageBucket: "robot-manager-b5d1e.firebasestorage.app",
+  messagingSenderId: "603247460540",
+  appId: "1:603247460540:web:4dbf9cbe16745ae26550b9",
+  measurementId: "G-0X416NGH1D"
+};
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+  const robotsRef = db.collection('robots');
+  const accessCollection = db.collection('access_requests');
+
+  let robots = [];
+  let isAdmin = false;
+  let currentEditingRobot = null;
+  let pendingUnsub = null;
+
+  const robotsGrid = document.getElementById('robotsGrid');
+  const btnAddRobot = document.getElementById('btnAddRobot');
+  const robotModal = document.getElementById('robotModal');
+  const notesModal = document.getElementById('notesModal');
+  const robotNameInput = document.getElementById('robotNameInput');
+  const robotDescInput = document.getElementById('robotDescInput');
+  const robotStatusSelect = document.getElementById('robotStatusSelect');
+  const robotNotesInput = document.getElementById('robotNotesInput');
+  const modalRobotTitle = document.getElementById('modalRobotTitle');
+  const modalNotesTitle = document.getElementById('modalNotesTitle');
+
+  const statusMap = {
+    'integrating': { emoji: '🔧', text: 'Đang tích hợp', step: 0 },
+    'integrated': { emoji: '✅', text: 'Đã tích hợp', step: 1 },
+    'waiting-software': { emoji: '⌛', text: 'Đang đợi cài software', step: 2 },
+    'waiting-calib': { emoji: '🎛️', text: 'Đang đợi calib', step: 3 },
+    'completed': { emoji: '🎉', text: 'Hoàn thành', step: 4 },
+    'shipped': { emoji: '📦', text: 'Đã xuất', step: 5 }
+  };
+
+  // --- Real-time clock ---
+  const clockTimeEl = document.getElementById('clockTime');
+  const clockDateEl = document.getElementById('clockDate');
+  const weekdays = ['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+
+  function tickClock(){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    clockTimeEl.textContent = hh + ':' + mm + ':' + ss;
+    const dd = String(now.getDate()).padStart(2,'0');
+    const mo = String(now.getMonth()+1).padStart(2,'0');
+    clockDateEl.textContent = weekdays[now.getDay()] + ', ' + dd + '/' + mo + '/' + now.getFullYear();
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // --- Access Gate ---
+  function getDeviceId(){
+    let id = localStorage.getItem('deviceId');
+    if(!id){
+      id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('deviceId', id);
+    }
+    return id;
+  }
+
+  const deviceId = getDeviceId();
+  const myAccessRef = accessCollection.doc(deviceId);
+  const gateOverlay = document.getElementById('gateOverlay');
+  const gateIcon = document.getElementById('gateIcon');
+  const gateTitle = document.getElementById('gateTitle');
+  const gateSubtitle = document.getElementById('gateSubtitle');
+  const gateDots = document.getElementById('gateDots');
+  const gateRetryBtn = document.getElementById('gateRetryBtn');
+  const adminFab = document.getElementById('adminFab');
+  const adminPanel = document.getElementById('adminPanel');
+  const closeAdminPanelBtn = document.getElementById('closeAdminPanel');
+  const pendingListEl = document.getElementById('pendingList');
+
+  async function ensureAccessDoc(){
+    try{
+      const snap = await myAccessRef.get();
+      if(!snap.exists){
+        await myAccessRef.set({
+          status: 'pending',
+          isAdmin: false,
+          requestedAt: new Date().toISOString()
+        });
+      }
+    }catch(e){
+      console.error('Access doc error:', e);
+    }
+  }
+
+  function watchAccess(){
+    myAccessRef.onSnapshot((doc) => {
+      const data = doc.data();
+      if(!data) return;
+
+      if(data.status === 'approved'){
+        gateOverlay.classList.remove('show');
+      } else if(data.status === 'denied'){
+        gateOverlay.classList.add('show');
+        gateIcon.textContent = '⛔';
+        gateTitle.textContent = 'Truy cập bị từ chối';
+        gateSubtitle.textContent = 'Quản trị viên chưa cho phép thiết bị này truy cập.';
+        gateDots.style.display = 'none';
+        gateRetryBtn.style.display = 'inline-block';
+      } else {
+        gateOverlay.classList.add('show');
+        gateIcon.textContent = '🔒';
+        gateTitle.textContent = 'Đang chờ duyệt truy cập';
+        gateSubtitle.innerHTML = 'Yêu cầu của bạn đã được gửi. Trang sẽ tự mở ra khi được <span class="gate-admin-link" id="gateAdminLink">quản trị viên</span> duyệt.';
+        gateDots.style.display = 'flex';
+        gateRetryBtn.style.display = 'none';
+      }
+    });
+  }
+
+  gateSubtitle.addEventListener('click', (e) => {
+    if(e.target && e.target.id === 'gateAdminLink') handleAdminLogin();
+  });
+
+  gateRetryBtn.addEventListener('click', async () => {
+    gateRetryBtn.disabled = true;
+    gateRetryBtn.textContent = 'Đang gửi...';
+    try{
+      await myAccessRef.set({
+        status: 'pending',
+        requestedAt: new Date().toISOString()
+      }, { merge: true });
+    }catch(e){
+      alert('Không gửi được yêu cầu.');
+    }
+    gateRetryBtn.disabled = false;
+    gateRetryBtn.textContent = 'Gửi yêu cầu lại';
+  });
+
+  // --- Auth ---
+  function updateAdminFab(){
+    if(isAdmin){
+      adminFab.classList.add('is-admin');
+      adminFab.textContent = '🔑 Quản trị';
+    } else {
+      adminFab.classList.remove('is-admin');
+      adminFab.textContent = '🔑';
+    }
+  }
+
+  auth.onAuthStateChanged((user) => {
+    isAdmin = !!user;
+    updateAdminFab();
+    if(user){
+      myAccessRef.set({
+        status: 'approved',
+        isAdmin: true,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
+    }
+  });
+
+  function askLogin(){
+    return new Promise((resolve) => {
+      const authEmailInput = document.getElementById('authEmailInput');
+      const pinInput = document.getElementById('pinInput');
+      const pinCancelBtn = document.getElementById('pinCancel');
+      const pinConfirmBtn = document.getElementById('pinConfirm');
+      const pinModal = document.getElementById('pinModal');
+
+      authEmailInput.value = '';
+      pinInput.value = '';
+      pinModal.classList.add('show');
+      setTimeout(() => authEmailInput.focus(), 50);
+
+      function onConfirm(){
+        cleanup({ email: authEmailInput.value.trim(), password: pinInput.value });
+      }
+      function onCancel(){
+        cleanup(null);
+      }
+      function onKey(e){
+        if(e.key === 'Enter') onConfirm();
+        if(e.key === 'Escape') onCancel();
+      }
+      function cleanup(result){
+        pinModal.classList.remove('show');
+        pinConfirmBtn.removeEventListener('click', onConfirm);
+        pinCancelBtn.removeEventListener('click', onCancel);
+        pinInput.removeEventListener('keydown', onKey);
+        authEmailInput.removeEventListener('keydown', onKey);
+        resolve(result);
+      }
+      pinConfirmBtn.addEventListener('click', onConfirm);
+      pinCancelBtn.addEventListener('click', onCancel);
+      pinInput.addEventListener('keydown', onKey);
+      authEmailInput.addEventListener('keydown', onKey);
+    });
+  }
+
+  async function handleAdminLogin(){
+    const cred = await askLogin();
+    if(cred === null) return;
+    if(!cred.email || !cred.password){
+      alert('Vui lòng nhập email và mật khẩu.');
+      return;
+    }
+    try{
+      await auth.signInWithEmailAndPassword(cred.email, cred.password);
+    }catch(e){
+      alert('Sai email hoặc mật khẩu.');
+    }
+  }
+
+  adminFab.addEventListener('click', async () => {
+    if(!isAdmin){
+      await handleAdminLogin();
+      return;
+    }
+    openAdminPanel();
+  });
+
+  closeAdminPanelBtn.addEventListener('click', () => {
+    adminPanel.classList.remove('show');
+  });
+
+  adminPanel.addEventListener('click', (e) => {
+    if(e.target === adminPanel) adminPanel.classList.remove('show');
+  });
+
+  function openAdminPanel(){
+    adminPanel.classList.add('show');
+    if(pendingUnsub) pendingUnsub();
+    pendingUnsub = accessCollection.where('status', '==', 'pending').onSnapshot((snap) => {
+      const items = snap.docs.filter(d => d.id !== deviceId);
+      pendingListEl.innerHTML = '';
+      if(items.length === 0){
+        pendingListEl.innerHTML = '<div class="empty-pending">Không có yêu cầu nào đang chờ.</div>';
+        return;
+      }
+      items.forEach((docSnap) => {
+        const data = docSnap.data();
+        const t = data.requestedAt ? new Date(data.requestedAt) : null;
+        const timeStr = t ? (String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0') + ' · ' + String(t.getDate()).padStart(2,'0') + '/' + String(t.getMonth()+1).padStart(2,'0')) : '';
+        const row = document.createElement('div');
+        row.className = 'pending-row';
+        row.innerHTML = `
+          <div class="pending-info">Thiết bị lạ<br><span class="pending-time">Yêu cầu lúc ${timeStr}</span></div>
+          <div class="pending-actions">
+            <button class="approve-btn">Duyệt</button>
+            <button class="deny-btn">Từ chối</button>
+          </div>
+        `;
+        row.querySelector('.approve-btn').addEventListener('click', async () => {
+          await accessCollection.doc(docSnap.id).set({ status: 'approved', updatedAt: new Date().toISOString() }, { merge: true });
+        });
+        row.querySelector('.deny-btn').addEventListener('click', async () => {
+          await accessCollection.doc(docSnap.id).set({ status: 'denied', updatedAt: new Date().toISOString() }, { merge: true });
+        });
+        pendingListEl.appendChild(row);
+      });
+    });
+  }
+
+  // --- Robot Management ---
+  function listenRobots(){
+    robotsRef.orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+      robots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderRobots();
+    });
+  }
+
+  function renderRobots(){
+    robotsGrid.innerHTML = '';
+    if(robots.length === 0){
+      robotsGrid.innerHTML = `
+        <div style="grid-column: 1/-1; text-align: center;">
+          <div class="empty-state">
+            <div class="empty-icon">🤖</div>
+            <div class="empty-text">Chưa có robot nào được thêm</div>
+            <button class="btn-primary" onclick="document.getElementById('btnAddRobot').click()">Thêm robot đầu tiên</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    robots.forEach(robot => {
+      const card = document.createElement('div');
+      card.className = 'robot-card';
+      const statusInfo = statusMap[robot.status] || statusMap['integrating'];
+      const progressPercent = ((statusInfo.step + 1) / 6) * 100;
+
+      card.innerHTML = `
+        <div class="robot-header">
+          <div class="robot-icon">${robot.emoji || '🤖'}</div>
+          <div class="robot-name" title="Click để xem/chỉnh sửa ghi chú">${escapeHtml(robot.name)}</div>
+        </div>
+        <div class="robot-status">
+          <div class="status-label">Tiến độ tích hợp</div>
+          <div class="status-bar">
+            ${[0,1,2,3,4,5].map(i => `
+              <div class="status-segment ${i <= statusInfo.step ? (i === statusInfo.step ? 'current' : 'active') : ''}"></div>
+            `).join('')}
+          </div>
+          <div class="status-text">${statusInfo.emoji} ${statusInfo.text}</div>
+          <div class="status-step">Bước ${statusInfo.step + 1} / 6</div>
+        </div>
+        <div style="margin: 12px 0; padding: 12px; background: var(--circuit); border-radius: 4px; font-size: 12px; line-height: 1.4; color: var(--text);">
+          ${robot.description ? escapeHtml(robot.description) : '<em>Không có mô tả</em>'}
+        </div>
+        <div class="robot-actions">
+          <button class="btn-small" data-robot-id="${robot.id}" data-action="edit">✏️ Sửa</button>
+          <button class="btn-small" data-robot-id="${robot.id}" data-action="notes">📝 Ghi chú</button>
+          ${isAdmin ? `<button class="btn-small btn-delete" data-robot-id="${robot.id}" data-action="delete">🗑️ Xoá</button>` : ''}
+        </div>
+      `;
+
+      card.querySelector('.robot-name').addEventListener('click', () => {
+        openNotesModal(robot);
+      });
+
+      card.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const action = btn.dataset.action;
+          const robotId = btn.dataset.robotId;
+          const robot = robots.find(r => r.id === robotId);
+          if(action === 'edit') openRobotModal(robot);
+          else if(action === 'notes') openNotesModal(robot);
+          else if(action === 'delete') deleteRobot(robotId);
+        });
+      });
+
+      robotsGrid.appendChild(card);
+    });
+  }
+
+  btnAddRobot.addEventListener('click', () => {
+    currentEditingRobot = null;
+    modalRobotTitle.textContent = 'Thêm robot mới';
+    robotNameInput.value = '';
+    robotDescInput.value = '';
+    robotStatusSelect.value = 'integrating';
+    robotModal.classList.add('show');
+    robotNameInput.focus();
+  });
+
+  document.getElementById('closeRobotModal').addEventListener('click', () => {
+    robotModal.classList.remove('show');
+  });
+
+  document.getElementById('cancelRobotBtn').addEventListener('click', () => {
+    robotModal.classList.remove('show');
+  });
+
+  document.getElementById('submitRobotBtn').addEventListener('click', async () => {
+    const name = robotNameInput.value.trim();
+    if(!name){
+      alert('Vui lòng nhập tên robot.');
+      return;
+    }
+
+    const btn = document.getElementById('submitRobotBtn');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    try{
+      const data = {
+        name: name,
+        description: robotDescInput.value.trim(),
+        status: robotStatusSelect.value,
+        emoji: '🤖',
+        updatedAt: new Date().toISOString()
+      };
+
+      if(currentEditingRobot){
+        await robotsRef.doc(currentEditingRobot.id).update(data);
+      } else {
+        data.createdAt = new Date().toISOString();
+        await robotsRef.add(data);
+      }
+
+      robotModal.classList.remove('show');
+    }catch(e){
+      alert('Lỗi: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Lưu robot';
+  });
+
+  function openRobotModal(robot){
+    if(!isAdmin){
+      alert('Chỉ admin mới có thể chỉnh sửa robot.');
+      return;
+    }
+    currentEditingRobot = robot;
+    modalRobotTitle.textContent = 'Chỉnh sửa robot';
+    robotNameInput.value = robot.name;
+    robotDescInput.value = robot.description || '';
+    robotStatusSelect.value = robot.status || 'integrating';
+    robotModal.classList.add('show');
+    robotNameInput.focus();
+  }
+
+  document.getElementById('closeNotesModal').addEventListener('click', () => {
+    notesModal.classList.remove('show');
+  });
+
+  document.getElementById('cancelNotesBtn').addEventListener('click', () => {
+    notesModal.classList.remove('show');
+  });
+
+  document.getElementById('submitNotesBtn').addEventListener('click', async () => {
+    if(!currentEditingRobot) return;
+
+    const btn = document.getElementById('submitNotesBtn');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    try{
+      await robotsRef.doc(currentEditingRobot.id).update({
+        notes: robotNotesInput.value.trim(),
+        updatedAt: new Date().toISOString()
+      });
+      notesModal.classList.remove('show');
+    }catch(e){
+      alert('Lỗi: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Cập nhật';
+  });
+
+  function openNotesModal(robot){
+    currentEditingRobot = robot;
+    modalNotesTitle.textContent = `Ghi chú: ${robot.name}`;
+    robotNotesInput.value = robot.notes || '';
+    notesModal.classList.add('show');
+    robotNotesInput.focus();
+  }
+
+  async function deleteRobot(robotId){
+    if(!confirm('Xoá robot này?')) return;
+    try{
+      await robotsRef.doc(robotId).delete();
+    }catch(e){
+      alert('Lỗi: ' + e.message);
+    }
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  // --- Init ---
+  ensureAccessDoc().then(watchAccess);
+  listenRobots();
+})();
+</script>
+</body>
+</html>
