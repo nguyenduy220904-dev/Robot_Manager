@@ -5,274 +5,326 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Robot Manager — Quản lý Robot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
   :root {
-    --steel: #1A3A52;
-    --steel-light: #2C5282;
-    --circuit: #E8F4F8;
-    --circuit-line: #A0C4D4;
-    --accent: #FF6B4A;
-    --success: #4CAF50;
-    --warning: #FFC107;
-    --process: #2196F3;
-    --text: #1F3A2E;
-    --text-soft: #4B5D4F;
+    --bg: #07131d;
+    --bg-soft: #0f1f2d;
+    --panel: rgba(16, 28, 38, 0.9);
+    --panel-2: rgba(12, 23, 31, 0.96);
+    --line: rgba(125, 202, 255, 0.18);
+    --cyan: #72e7ff;
+    --cyan-strong: #40c9ff;
+    --blue: #2ea2ff;
+    --success: #31d0aa;
+    --warning: #ffb74d;
+    --danger: #ff5d73;
+    --text: #e8f6ff;
+    --muted: #9bb7c9;
+    --shadow: rgba(0, 0, 0, 0.35);
+    --accent: #8ee7ff;
   }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  
+
   body {
-    background: linear-gradient(135deg, #E8F4F8 0%, #F0F8FB 100%);
+    background:
+      radial-gradient(circle at top left, rgba(42, 180, 255, 0.18), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(31, 208, 170, 0.15), transparent 22%),
+      linear-gradient(140deg, var(--bg) 0%, #0c1723 100%);
     color: var(--text);
-    font-family: 'Courier Prime', monospace;
+    font-family: 'Inter', sans-serif;
     min-height: 100vh;
-    padding: 32px 16px 80px;
+    padding: 28px 18px 60px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    inset: auto;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  body::before {
+    background: var(--cyan-strong);
+    top: -120px;
+    left: -120px;
+  }
+
+  body::after {
+    background: var(--success);
+    right: -100px;
+    bottom: -140px;
   }
 
   .page {
-    max-width: 1200px;
+    max-width: 1180px;
     margin: 0 auto;
   }
 
-  header.cover {
+  .cover {
     text-align: center;
-    margin-bottom: 32px;
-    padding-bottom: 20px;
-    border-bottom: 3px solid var(--steel);
+    margin-bottom: 20px;
+    padding: 24px 20px 22px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(12, 23, 31, 0.86), rgba(8, 18, 26, 0.94));
+    box-shadow: 0 20px 38px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(16px);
+    position: relative;
+    overflow: hidden;
   }
 
-  header.cover .eyebrow {
-    letter-spacing: 2px;
-    font-size: 11px;
-    color: var(--text-soft);
+  .cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(114, 231, 255, 0.08), transparent 40%, rgba(49, 208, 170, 0.06));
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    letter-spacing: 0.18em;
     text-transform: uppercase;
+    font-size: 10px;
+    color: var(--cyan);
     font-weight: 700;
+    margin-bottom: 10px;
   }
 
-  header.cover h1 {
-    font-family: 'Zilla Slab', serif;
-    font-weight: 700;
-    font-size: 36px;
-    margin: 8px 0 4px;
-    letter-spacing: 0.5px;
-    color: var(--steel);
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(30px, 4vw, 48px);
+    margin: 0;
+    letter-spacing: 0.06em;
+    color: var(--text);
   }
 
-  header.cover .subtitle {
+  .subtitle {
+    margin-top: 8px;
+    color: var(--muted);
     font-size: 14px;
-    color: var(--text-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .header-actions {
     display: flex;
-    gap: 12px;
     justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-top: 20px;
   }
 
-  .btn-primary {
-    background: var(--steel);
-    color: var(--circuit);
-    border: none;
-    padding: 11px 22px;
-    border-radius: 4px;
-    font-family: 'Zilla Slab', serif;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: all 0.2s;
+  .btn-primary, .btn-panel, .btn-submit, .btn-cancel, .btn-small {
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
   }
 
-  .btn-primary:hover { background: var(--steel-light); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--cyan-strong), #1674ff);
+    border: none;
+    color: #041018;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 12px 24px rgba(64, 201, 255, 0.2);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(64, 201, 255, 0.26);
+  }
 
   .live-clock {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
 
   .clock-time {
-    font-family: 'Zilla Slab', serif;
-    font-weight: 700;
-    font-size: 20px;
-    letter-spacing: 1px;
-    color: var(--steel);
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(22px, 2vw, 28px);
+    letter-spacing: 0.18em;
+    color: var(--cyan);
   }
 
   .clock-date {
+    color: var(--muted);
+    margin-top: 8px;
     font-size: 12px;
-    color: var(--text-soft);
-    margin-top: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .summary-card {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px 16px;
+    background: rgba(10, 20, 29, 0.72);
+    backdrop-filter: blur(12px);
+  }
+
+  .summary-label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .summary-card strong {
+    font-size: 22px;
+    color: var(--text);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.04em;
   }
 
   .robots-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
-    margin-bottom: 40px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 18px;
+    margin-bottom: 32px;
   }
 
   .robot-card {
-    background: #fff;
-    border: 2px solid var(--circuit-line);
-    border-radius: 6px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(26, 58, 82, 0.08);
-    transition: all 0.3s;
+    background: linear-gradient(180deg, rgba(15, 31, 45, 0.94), rgba(11, 21, 29, 0.92));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 6px;
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.16);
+    transition: transform 0.2s ease, border-color 0.2s ease;
   }
 
   .robot-card:hover {
-    border-color: var(--steel);
-    box-shadow: 0 4px 16px rgba(26, 58, 82, 0.15);
+    transform: translateY(-3px);
+    border-color: rgba(114, 231, 255, 0.34);
   }
 
-  .robot-header {
+  .robot-row {
+    width: 100%;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .robot-icon {
-    font-size: 28px;
-  }
-
-  .robot-name {
-    font-family: 'Zilla Slab', serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--steel);
+    gap: 10px;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    color: var(--text);
+    padding: 16px 14px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: color 0.2s;
-    flex: 1;
+    font: inherit;
   }
 
-  .robot-name:hover {
-    color: var(--accent);
+  .robot-row:hover {
+    background: linear-gradient(90deg, rgba(114, 231, 255, 0.05), transparent 90%);
   }
 
-  .robot-status {
-    margin: 16px 0;
+  .robot-name-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    word-break: break-word;
   }
 
-  .status-label {
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 10px;
+    border-radius: 999px;
     font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-soft);
-    margin-bottom: 8px;
-    font-weight: 700;
+    white-space: nowrap;
+    border: 1px solid transparent;
   }
 
-  .status-bar {
-    display: flex;
-    height: 8px;
-    border-radius: 4px;
-    overflow: hidden;
-    background: var(--circuit-line);
-    margin-bottom: 8px;
+  .status-badge.integrating {
+    background: rgba(114, 231, 255, 0.1);
+    border-color: rgba(114, 231, 255, 0.28);
+    color: var(--cyan);
   }
 
-  .status-segment {
-    flex: 0 0 16.66%;
-    background: var(--circuit-line);
-    position: relative;
+  .status-badge.integrated {
+    background: rgba(49, 208, 170, 0.12);
+    border-color: rgba(49, 208, 170, 0.32);
+    color: var(--success);
   }
 
-  .status-segment.active {
-    background: var(--success);
-    animation: pulse 1.5s infinite;
+  .status-badge.waiting-software,
+  .status-badge.waiting-calib {
+    background: rgba(255, 183, 77, 0.12);
+    border-color: rgba(255, 183, 77, 0.3);
+    color: var(--warning);
   }
 
-  .status-segment.current {
-    background: var(--process);
-    animation: pulse 1.5s infinite;
+  .status-badge.completed,
+  .status-badge.shipped {
+    background: rgba(142, 231, 255, 0.1);
+    border-color: rgba(142, 231, 255, 0.24);
+    color: #9fe9ff;
   }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+  .status-badge.repairing {
+    background: rgba(255, 183, 77, 0.13);
+    border-color: rgba(255, 183, 77, 0.38);
+    color: var(--warning);
   }
 
-  .status-text {
-    font-size: 13px;
-    color: var(--steel);
-    font-weight: 700;
-  }
-
-  .status-step {
-    font-size: 11px;
-    color: var(--text-soft);
-    margin-top: 6px;
-  }
-
-  .robot-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 14px;
-  }
-
-  .btn-small {
-    flex: 1;
-    padding: 8px 12px;
-    background: var(--circuit);
-    border: 1px solid var(--circuit-line);
-    border-radius: 4px;
-    font-family: 'Courier Prime', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    color: var(--steel);
-    transition: all 0.2s;
-  }
-
-  .btn-small:hover {
-    background: var(--steel);
-    border-color: var(--steel);
-    color: var(--circuit);
-  }
-
-  .btn-delete {
-    background: #fff;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-  }
-
-  .btn-delete:hover {
-    background: var(--accent);
-    color: #fff;
+  .status-badge.done {
+    background: rgba(49, 208, 170, 0.12);
+    border-color: rgba(49, 208, 170, 0.4);
+    color: var(--success);
   }
 
   .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: var(--text-soft);
+    color: var(--muted);
   }
 
   .empty-icon {
     font-size: 48px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .empty-text {
-    font-size: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 18px;
+    font-size: 18px;
+    color: var(--text);
   }
 
-  /* --- Modals --- */
   .modal {
     position: fixed;
     inset: 0;
-    background: rgba(26, 58, 82, 0.55);
     display: none;
     align-items: center;
     justify-content: center;
+    background: rgba(4, 16, 24, 0.72);
     z-index: 600;
     padding: 20px;
   }
@@ -280,70 +332,66 @@
   .modal.show { display: flex; }
 
   .modal-box {
-    background: #fff;
-    border-radius: 8px;
-    padding: 24px;
-    width: 100%;
-    max-width: 450px;
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(26, 58, 82, 0.25);
-    border: 1px solid var(--circuit-line);
+    width: min(100%, 440px);
+    background: linear-gradient(180deg, rgba(14, 25, 35, 0.98), rgba(8, 18, 26, 0.98));
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 22px;
+    box-shadow: 0 24px 44px rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(12px);
   }
 
   .modal-title {
-    font-family: 'Zilla Slab', serif;
-    font-weight: 700;
-    font-size: 18px;
-    margin-bottom: 18px;
-    color: var(--steel);
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    color: var(--text);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.05em;
   }
 
   .modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     cursor: pointer;
-    color: var(--text-soft);
   }
 
-  .form-group {
-    margin-bottom: 14px;
-  }
-
+  .form-group { margin-bottom: 16px; }
   .form-label {
     display: block;
+    margin-bottom: 8px;
     font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-soft);
-    margin-bottom: 6px;
     font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
 
   .form-input, .form-select, .form-textarea {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--circuit-line);
-    border-radius: 4px;
-    font-family: 'Courier Prime', monospace;
-    font-size: 14px;
-    background: var(--circuit);
+    border: 1px solid var(--line);
+    background: rgba(8, 18, 26, 0.8);
     color: var(--text);
-    transition: border-color 0.2s;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font: inherit;
   }
 
   .form-textarea {
+    min-height: 118px;
     resize: vertical;
-    min-height: 100px;
   }
 
   .form-input:focus, .form-select:focus, .form-textarea:focus {
-    outline: 2px solid var(--steel);
-    outline-offset: 1px;
+    outline: 2px solid rgba(114, 231, 255, 0.4);
+    border-color: var(--cyan);
   }
 
   .form-actions {
@@ -352,164 +400,261 @@
     margin-top: 18px;
   }
 
-  .btn-cancel {
+  .btn-cancel, .btn-submit {
     flex: 1;
-    padding: 11px;
-    background: #fff;
-    border: 1px solid var(--circuit-line);
-    border-radius: 4px;
-    font-family: 'Courier Prime', monospace;
+    padding: 12px 14px;
+    border-radius: 12px;
     font-weight: 700;
-    font-size: 13px;
     cursor: pointer;
-    color: var(--text-soft);
-    transition: all 0.2s;
   }
 
-  .btn-cancel:hover {
-    background: var(--circuit);
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
   }
 
   .btn-submit {
-    flex: 1;
-    padding: 11px;
-    background: var(--steel);
+    background: linear-gradient(135deg, var(--cyan-strong), var(--blue));
     border: none;
-    border-radius: 4px;
-    font-family: 'Zilla Slab', serif;
-    font-weight: 700;
-    font-size: 13px;
-    cursor: pointer;
-    color: var(--circuit);
-    transition: all 0.2s;
+    color: #041018;
+    font-weight: 800;
   }
 
-  .btn-submit:hover { background: var(--steel-light); }
-  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 
-  /* --- Gate --- */
+  .detail-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(100%, 430px);
+    height: 100vh;
+    background: linear-gradient(180deg, rgba(12, 22, 31, 0.98), rgba(7, 14, 20, 0.98));
+    border-left: 1px solid var(--line);
+    box-shadow: -18px 0 36px rgba(0, 0, 0, 0.2);
+    transform: translateX(102%);
+    transition: transform 0.3s ease;
+    z-index: 500;
+    padding: 24px 22px 26px;
+    overflow-y: auto;
+    backdrop-filter: blur(12px);
+  }
+
+  .detail-panel.show {
+    transform: translateX(0);
+  }
+
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .detail-header h2 {
+    margin: 0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+  }
+
+  .detail-eyebrow {
+    margin-bottom: 6px;
+  }
+
+  .detail-close {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+  }
+
+  .detail-status-box {
+    margin-bottom: 18px;
+  }
+
+  .detail-block {
+    background: linear-gradient(135deg, rgba(114, 231, 255, 0.04), rgba(49, 208, 170, 0.03));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .detail-notes {
+    color: var(--text);
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .detail-actions {
+    margin-top: 18px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .btn-panel {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .btn-panel.primary {
+    background: linear-gradient(135deg, var(--cyan-strong), var(--blue));
+    border: none;
+    color: #041018;
+  }
+
+  .btn-panel.secondary {
+    background: rgba(114, 231, 255, 0.04);
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+
+  .detail-edit-box {
+    display: none;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+
+  .detail-edit-box.show { display: block; }
+
+  .compact {
+    margin-top: 14px;
+  }
+
   .gate-overlay {
     position: fixed;
     inset: 0;
-    background: var(--circuit);
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 500;
+    background: rgba(7, 19, 29, 0.88);
+    z-index: 700;
     padding: 24px;
   }
 
   .gate-overlay.show { display: flex; }
 
   .gate-box {
+    max-width: 340px;
     text-align: center;
-    max-width: 320px;
+    padding: 26px 18px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(13, 26, 35, 0.97), rgba(8, 18, 26, 0.97));
+    box-shadow: 0 22px 40px rgba(0, 0, 0, 0.26);
   }
 
   .gate-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+    font-size: 42px;
+    margin-bottom: 14px;
   }
 
   .gate-title {
-    font-family: 'Zilla Slab', serif;
-    font-weight: 700;
+    font-family: 'Orbitron', sans-serif;
     font-size: 20px;
     margin-bottom: 8px;
-    color: var(--steel);
+    letter-spacing: 0.05em;
   }
 
   .gate-subtitle {
+    color: var(--muted);
+    line-height: 1.6;
     font-size: 13px;
-    color: var(--text-soft);
-    line-height: 1.5;
-    margin-bottom: 22px;
   }
 
   .gate-dots {
     display: flex;
     justify-content: center;
-    gap: 6px;
-    margin-bottom: 22px;
+    gap: 7px;
+    margin: 18px 0;
   }
 
   .gate-dots span {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: var(--text-soft);
-    opacity: 0.3;
-    animation: gatePulse 1.2s infinite ease-in-out;
+    background: var(--cyan);
+    opacity: 0.35;
+    animation: pulse 1.2s infinite ease-in-out;
   }
 
   .gate-dots span:nth-child(2) { animation-delay: 0.2s; }
   .gate-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-  @keyframes gatePulse {
-    0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
     40% { opacity: 1; transform: scale(1); }
   }
 
   .gate-admin-link {
+    color: var(--cyan);
     cursor: pointer;
-    color: var(--steel);
     font-weight: 700;
   }
 
   .gate-retry-btn {
-    background: var(--steel);
-    color: var(--circuit);
+    background: linear-gradient(135deg, var(--cyan-strong), var(--blue));
+    color: #041018;
     border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    font-family: 'Courier Prime', monospace;
-    font-weight: 700;
-    font-size: 13px;
+    border-radius: 12px;
+    padding: 11px 18px;
+    font-weight: 800;
     cursor: pointer;
   }
 
-  .gate-retry-btn:hover { opacity: 0.88; }
-
-  /* --- Admin FAB --- */
   .admin-fab {
     position: fixed;
-    bottom: 18px;
     right: 18px;
-    width: 50px;
-    height: 50px;
+    bottom: 18px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
-    background: var(--steel);
-    color: var(--circuit);
-    border: none;
-    font-size: 22px;
+    border: 1px solid var(--line);
+    background: rgba(12, 23, 31, 0.92);
+    color: var(--text);
     cursor: pointer;
     z-index: 300;
-    opacity: 0.7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(26, 58, 82, 0.2);
-  }
-
-  .admin-fab:hover {
-    opacity: 1;
-    transform: scale(1.1);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+    font-size: 20px;
+    backdrop-filter: blur(10px);
   }
 
   .admin-fab.is-admin {
     width: auto;
-    border-radius: 24px;
+    border-radius: 999px;
     padding: 0 16px;
     font-size: 12px;
-    font-weight: 700;
-    gap: 6px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 800;
   }
 
   .admin-panel {
     position: fixed;
     inset: 0;
-    background: rgba(26, 58, 82, 0.55);
+    background: rgba(4, 16, 24, 0.7);
     display: none;
     align-items: center;
     justify-content: center;
@@ -520,42 +665,38 @@
   .admin-panel.show { display: flex; }
 
   .admin-panel-box {
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    width: 100%;
-    max-width: 380px;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 30px rgba(26, 58, 82, 0.25);
-    border: 1px solid var(--circuit-line);
+    background: rgba(12, 23, 31, 0.96);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 22px;
+    width: min(100%, 420px);
+    box-shadow: 0 22px 40px rgba(0,0,0,0.32);
   }
 
   .admin-panel-title {
-    font-family: 'Zilla Slab', serif;
-    font-weight: 700;
-    font-size: 16px;
-    margin-bottom: 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: var(--steel);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
   }
 
   .admin-panel-title button {
-    background: none;
-    border: none;
-    font-size: 24px;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
     cursor: pointer;
-    color: var(--text-soft);
   }
 
   .empty-pending {
+    color: var(--muted);
     text-align: center;
-    color: var(--text-soft);
-    font-size: 13px;
-    font-style: italic;
-    padding: 20px 0;
+    padding: 18px 0;
   }
 
   .pending-row {
@@ -563,130 +704,114 @@
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+    border-bottom: 1px solid var(--line);
     padding: 12px 0;
-    border-bottom: 1px solid var(--circuit-line);
   }
 
   .pending-info {
+    color: var(--text);
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   .pending-time {
+    color: var(--muted);
     font-size: 11px;
-    color: var(--text-soft);
   }
 
   .pending-actions {
     display: flex;
     gap: 6px;
-    flex-shrink: 0;
   }
 
   .pending-actions button {
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-family: 'Courier Prime', monospace;
+    padding: 7px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    cursor: pointer;
     font-size: 11px;
     font-weight: 700;
-    cursor: pointer;
-    border: 1px solid var(--steel);
   }
 
   .approve-btn {
-    background: var(--steel);
-    color: var(--circuit);
+    background: linear-gradient(135deg, var(--cyan-strong), var(--blue));
+    border: none;
+    color: #041018;
   }
 
   .deny-btn {
-    background: #fff;
-    color: var(--accent);
-    border-color: var(--accent);
+    background: transparent;
+    color: var(--danger);
   }
 
   .pin-modal {
     position: fixed;
     inset: 0;
-    background: rgba(26, 58, 82, 0.55);
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 620;
+    background: rgba(4, 16, 24, 0.7);
+    z-index: 680;
     padding: 20px;
   }
 
   .pin-modal.show { display: flex; }
 
   .pin-box {
-    background: #fff;
-    border-radius: 8px;
-    padding: 24px;
-    width: 100%;
-    max-width: 300px;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(26, 58, 82, 0.25);
-    border: 1px solid var(--circuit-line);
+    width: min(100%, 320px);
+    background: rgba(12, 23, 31, 0.96);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 22px 40px rgba(0,0,0,0.3);
   }
 
   .pin-icon {
     font-size: 32px;
+    text-align: center;
     margin-bottom: 12px;
   }
 
   .pin-title {
-    font-family: 'Zilla Slab', serif;
-    font-weight: 700;
-    font-size: 16px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    text-align: center;
     margin-bottom: 16px;
-    color: var(--steel);
-  }
-
-  .pin-box input {
-    width: 100%;
-    padding: 11px;
-    border: 1px solid var(--circuit-line);
-    border-radius: 4px;
-    font-family: 'Courier Prime', monospace;
-    font-size: 14px;
-    background: var(--circuit);
-    color: var(--text);
-    margin-bottom: 12px;
-  }
-
-  .pin-box input:focus {
-    outline: 2px solid var(--steel);
-    outline-offset: 1px;
+    letter-spacing: 0.05em;
   }
 
   .pin-actions {
     display: flex;
     gap: 8px;
-  }
-
-  .pin-actions button {
-    flex: 1;
-    padding: 10px;
-    border-radius: 4px;
-    font-family: 'Courier Prime', monospace;
-    font-weight: 700;
-    font-size: 13px;
-    cursor: pointer;
-    border: 1px solid var(--circuit-line);
+    margin-top: 16px;
   }
 
   .pin-confirm {
-    background: var(--steel);
-    color: var(--circuit);
-    border-color: var(--steel);
+    flex: 1;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--cyan-strong), var(--blue));
+    color: #041018;
+    font-weight: 800;
+    cursor: pointer;
   }
 
   footer {
     text-align: center;
-    font-size: 12px;
-    color: var(--text-soft);
-    margin-top: 40px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--line);
     padding-top: 20px;
-    border-top: 1px solid var(--circuit-line);
+    margin-top: 28px;
+  }
+
+  @media (max-width: 640px) {
+    body { padding-inline: 12px; }
+    .robots-grid { grid-template-columns: 1fr; }
+    .detail-panel { width: 100%; }
   }
 </style>
 </head>
@@ -696,7 +821,7 @@
   <div class="gate-box">
     <div class="gate-icon" id="gateIcon">🔒</div>
     <div class="gate-title" id="gateTitle">Đang chờ duyệt truy cập</div>
-    <div class="gate-subtitle" id="gateSubtitle">Yêu cầu của bạn đã được gửi. Trang sẽ tự mở ra khi được <span class="gate-admin-link" id="gateAdminLink">quản trị viên</span> duyệt.</div>
+    <div class="gate-subtitle" id="gateSubtitle">Yêu cầu của bạn đã được gửi. Trang sẽ tự mở ra khi được quản trị viên duyệt.</div>
     <div class="gate-dots" id="gateDots"><span></span><span></span><span></span></div>
     <button class="gate-retry-btn" id="gateRetryBtn" type="button" style="display:none;">Gửi yêu cầu lại</button>
   </div>
@@ -721,6 +846,7 @@
     <div class="subtitle">Theo dõi trạng thái robot</div>
     <div class="header-actions">
       <button class="btn-primary" id="btnAddRobot">➕ Thêm robot mới</button>
+      <button class="btn-primary" id="btnAddRepairRobot" style="background: linear-gradient(135deg, #ffb74d, #ff8a65);">🛠️ Thêm robot sửa chữa</button>
     </div>
   </header>
 
@@ -729,28 +855,39 @@
     <div class="clock-date" id="clockDate">-- -- --</div>
   </div>
 
-  <div class="robots-grid" id="robotsGrid">
-    <!-- Robot cards injected here -->
+  <div class="summary-strip">
+    <div class="summary-card">
+      <span class="summary-label">Tổng robot</span>
+      <strong id="summaryTotal">0</strong>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Đang xử lý</span>
+      <strong id="summaryActive">0</strong>
+    </div>
   </div>
 
-  <footer>VINROBOTICS 2026 | Quản lý trạng thái robot tích hợp</footer>
+  <div class="robots-grid" id="robotsGrid"></div>
+
+  <footer>VINROBOTICS 2026 | robot control system</footer>
 </div>
 
-<!-- Add/Edit Robot Modal -->
 <div class="modal" id="robotModal">
   <div class="modal-box">
     <div class="modal-title">
       <span id="modalRobotTitle">Thêm robot mới</span>
-      <button class="modal-close" id="closeRobotModal">✕</button>
+      <button class="modal-close" id="closeRobotModal" type="button">✕</button>
     </div>
+
     <div class="form-group">
       <label class="form-label">Tên robot</label>
       <input type="text" id="robotNameInput" class="form-input" placeholder="Vd: ROBOT-A1, ABB-001...">
     </div>
+
     <div class="form-group">
       <label class="form-label">Mô tả</label>
-      <textarea id="robotDescInput" class="form-textarea" placeholder=""></textarea>
+      <textarea id="robotDescInput" class="form-textarea" placeholder="Mô tả ngắn về robot hoặc lỗi cần xử lý..."></textarea>
     </div>
+
     <div class="form-group">
       <label class="form-label">Trạng thái</label>
       <select id="robotStatusSelect" class="form-select">
@@ -762,32 +899,19 @@
         <option value="shipped">📦 Đã xuất</option>
       </select>
     </div>
-    <div class="form-actions">
-      <button class="btn-cancel" id="cancelRobotBtn">Hủy</button>
-      <button class="btn-submit" id="submitRobotBtn">Lưu robot</button>
-    </div>
-  </div>
-</div>
 
-<!-- Edit Notes Modal -->
-<div class="modal" id="notesModal">
-  <div class="modal-box">
-    <div class="modal-title">
-      <span id="modalNotesTitle">Ghi chú robot</span>
-      <button class="modal-close" id="closeNotesModal">✕</button>
-    </div>
     <div class="form-group">
       <label class="form-label">Ghi chú</label>
-      <textarea id="robotNotesInput" class="form-textarea" placeholder="Ghi chú chi tiết về tiến trình, vấn đề cần lưu ý..."></textarea>
+      <textarea id="robotNotesInput" class="form-textarea" placeholder="Ghi chú chi tiết về tiến độ, lỗi hoặc lưu ý cần theo dõi..."></textarea>
     </div>
+
     <div class="form-actions">
-      <button class="btn-cancel" id="cancelNotesBtn">Đóng</button>
-      <button class="btn-submit" id="submitNotesBtn">Cập nhật</button>
+      <button class="btn-cancel" id="cancelRobotBtn" type="button">Hủy</button>
+      <button class="btn-submit" id="submitRobotBtn" type="button">Lưu robot</button>
     </div>
   </div>
 </div>
 
-<!-- Login Modal -->
 <div class="pin-modal" id="pinModal">
   <div class="pin-box">
     <div class="pin-icon">🔐</div>
@@ -802,17 +926,17 @@
 </div>
 
 <script>
-(function(){
-  // --- Firebase setup ---
+(function () {
   const firebaseConfig = {
-    apiKey: "AIzaSyBxtE_dwnXmJltx2HOGU_eFFyd_NnA4KAY",
-    authDomain: "robot-manager-b5d1e.firebaseapp.com",
-    projectId: "robot-manager-b5d1e",
-    storageBucket: "robot-manager-b5d1e.firebasestorage.app",
-    messagingSenderId: "603247460540",
-    appId: "1:603247460540:web:4dbf9cbe16745ae26550b9",
-    measurementId: "G-0X416NGH1D"
+    apiKey: 'AIzaSyBxtE_dwnXmJltx2HOGU_eFFyd_NnA4KAY',
+    authDomain: 'robot-manager-b5d1e.firebaseapp.com',
+    projectId: 'robot-manager-b5d1e',
+    storageBucket: 'robot-manager-b5d1e.firebasestorage.app',
+    messagingSenderId: '603247460540',
+    appId: '1:603247460540:web:4dbf9cbe16745ae26550b9',
+    measurementId: 'G-0X416NGH1D'
   };
+
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
@@ -826,46 +950,92 @@
 
   const robotsGrid = document.getElementById('robotsGrid');
   const btnAddRobot = document.getElementById('btnAddRobot');
+  const btnAddRepairRobot = document.getElementById('btnAddRepairRobot');
   const robotModal = document.getElementById('robotModal');
-  const notesModal = document.getElementById('notesModal');
   const robotNameInput = document.getElementById('robotNameInput');
   const robotDescInput = document.getElementById('robotDescInput');
   const robotStatusSelect = document.getElementById('robotStatusSelect');
   const robotNotesInput = document.getElementById('robotNotesInput');
   const modalRobotTitle = document.getElementById('modalRobotTitle');
-  const modalNotesTitle = document.getElementById('modalNotesTitle');
+  let repairMode = false;
+
+  const standardStatusOptions = [
+    { value: 'integrating', label: '🔧 Đang tích hợp' },
+    { value: 'integrated', label: '✅ Đã tích hợp' },
+    { value: 'waiting-software', label: '⌛ Đang đợi cài software' },
+    { value: 'waiting-calib', label: '🎛️ Đang đợi calib' },
+    { value: 'completed', label: '🎉 Hoàn thành' },
+    { value: 'shipped', label: '📦 Đã xuất' }
+  ];
+
+  const repairStatusOptions = [
+    { value: 'repairing', label: '🛠️ Đang sửa chữa' },
+    { value: 'done', label: '✅ Xong' }
+  ];
 
   const statusMap = {
-    'integrating': { emoji: '🔧', text: 'Đang tích hợp', step: 0 },
-    'integrated': { emoji: '✅', text: 'Đã tích hợp', step: 1 },
-    'waiting-software': { emoji: '⌛', text: 'Đang đợi cài software', step: 2 },
-    'waiting-calib': { emoji: '🎛️', text: 'Đang đợi calib', step: 3 },
-    'completed': { emoji: '🎉', text: 'Hoàn thành', step: 4 },
-    'shipped': { emoji: '📦', text: 'Đã xuất', step: 5 }
+    integrating: { key: 'integrating', text: 'Đang tích hợp' },
+    integrated: { key: 'integrated', text: 'Đã tích hợp' },
+    'waiting-software': { key: 'waiting-software', text: 'Đang đợi cài software' },
+    'waiting-calib': { key: 'waiting-calib', text: 'Đang đợi calib' },
+    completed: { key: 'completed', text: 'Hoàn thành' },
+    shipped: { key: 'shipped', text: 'Đã xuất' },
+    repairing: { key: 'repairing', text: 'Đang sửa chữa' },
+    done: { key: 'done', text: 'Xong' }
   };
 
-  // --- Real-time clock ---
+  function buildStatusSelect(selectEl, isRepairMode) {
+    const options = isRepairMode ? repairStatusOptions : standardStatusOptions;
+    selectEl.innerHTML = options.map(option => `<option value="${option.value}">${option.label}</option>`).join('');
+  }
+
+  function normalizeStatus(status) {
+    if (!status) return 'integrating';
+    const value = String(status).trim().toLowerCase();
+    if (statusMap[value]) return statusMap[value].key;
+    if (value.includes('integrat')) return 'integrating';
+    if (value.includes('software')) return 'waiting-software';
+    if (value.includes('calib')) return 'waiting-calib';
+    if (value.includes('repair') || value.includes('sửa')) return 'repairing';
+    if (value.includes('xong') || value === 'done') return 'done';
+    if (value.includes('complete') || value.includes('finish')) return 'completed';
+    if (value.includes('ship')) return 'shipped';
+    return 'integrating';
+  }
+
+  function getRepairStatusValue(status) {
+    const value = String(status || '').trim().toLowerCase();
+    if (value === 'done' || value.includes('xong')) return 'done';
+    return 'repairing';
+  }
+
+  function getStatusMeta(status) {
+    const normalized = normalizeStatus(status);
+    return statusMap[normalized] || statusMap.repairing;
+  }
+
   const clockTimeEl = document.getElementById('clockTime');
   const clockDateEl = document.getElementById('clockDate');
-  const weekdays = ['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+  const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
-  function tickClock(){
+  function tickClock() {
     const now = new Date();
-    const hh = String(now.getHours()).padStart(2,'0');
-    const mm = String(now.getMinutes()).padStart(2,'0');
-    const ss = String(now.getSeconds()).padStart(2,'0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
     clockTimeEl.textContent = hh + ':' + mm + ':' + ss;
-    const dd = String(now.getDate()).padStart(2,'0');
-    const mo = String(now.getMonth()+1).padStart(2,'0');
+
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mo = String(now.getMonth() + 1).padStart(2, '0');
     clockDateEl.textContent = weekdays[now.getDay()] + ', ' + dd + '/' + mo + '/' + now.getFullYear();
   }
+
   tickClock();
   setInterval(tickClock, 1000);
 
-  // --- Access Gate ---
-  function getDeviceId(){
+  function getDeviceId() {
     let id = localStorage.getItem('deviceId');
-    if(!id){
+    if (!id) {
       id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
       localStorage.setItem('deviceId', id);
     }
@@ -885,29 +1055,29 @@
   const closeAdminPanelBtn = document.getElementById('closeAdminPanel');
   const pendingListEl = document.getElementById('pendingList');
 
-  async function ensureAccessDoc(){
-    try{
+  async function ensureAccessDoc() {
+    try {
       const snap = await myAccessRef.get();
-      if(!snap.exists){
+      if (!snap.exists) {
         await myAccessRef.set({
           status: 'pending',
           isAdmin: false,
           requestedAt: new Date().toISOString()
         });
       }
-    }catch(e){
+    } catch (e) {
       console.error('Access doc error:', e);
     }
   }
 
-  function watchAccess(){
+  function watchAccess() {
     myAccessRef.onSnapshot((doc) => {
       const data = doc.data();
-      if(!data) return;
+      if (!data) return;
 
-      if(data.status === 'approved'){
+      if (data.status === 'approved') {
         gateOverlay.classList.remove('show');
-      } else if(data.status === 'denied'){
+      } else if (data.status === 'denied') {
         gateOverlay.classList.add('show');
         gateIcon.textContent = '⛔';
         gateTitle.textContent = 'Truy cập bị từ chối';
@@ -918,35 +1088,30 @@
         gateOverlay.classList.add('show');
         gateIcon.textContent = '🔒';
         gateTitle.textContent = 'Đang chờ duyệt truy cập';
-        gateSubtitle.innerHTML = 'Yêu cầu của bạn đã được gửi. Trang sẽ tự mở ra khi được <span class="gate-admin-link" id="gateAdminLink">quản trị viên</span> duyệt.';
+        gateSubtitle.textContent = 'Yêu cầu của bạn đã được gửi. Trang sẽ tự mở ra khi được quản trị viên duyệt.';
         gateDots.style.display = 'flex';
         gateRetryBtn.style.display = 'none';
       }
     });
   }
 
-  gateSubtitle.addEventListener('click', (e) => {
-    if(e.target && e.target.id === 'gateAdminLink') handleAdminLogin();
-  });
-
   gateRetryBtn.addEventListener('click', async () => {
     gateRetryBtn.disabled = true;
     gateRetryBtn.textContent = 'Đang gửi...';
-    try{
+    try {
       await myAccessRef.set({
         status: 'pending',
         requestedAt: new Date().toISOString()
       }, { merge: true });
-    }catch(e){
+    } catch (e) {
       alert('Không gửi được yêu cầu.');
     }
     gateRetryBtn.disabled = false;
     gateRetryBtn.textContent = 'Gửi yêu cầu lại';
   });
 
-  // --- Auth ---
-  function updateAdminFab(){
-    if(isAdmin){
+  function updateAdminFab() {
+    if (isAdmin) {
       adminFab.classList.add('is-admin');
       adminFab.textContent = '🔑 Quản trị';
     } else {
@@ -958,7 +1123,7 @@
   auth.onAuthStateChanged((user) => {
     isAdmin = !!user;
     updateAdminFab();
-    if(user){
+    if (user) {
       myAccessRef.set({
         status: 'approved',
         isAdmin: true,
@@ -967,7 +1132,7 @@
     }
   });
 
-  function askLogin(){
+  function askLogin() {
     return new Promise((resolve) => {
       const authEmailInput = document.getElementById('authEmailInput');
       const pinInput = document.getElementById('pinInput');
@@ -980,17 +1145,20 @@
       pinModal.classList.add('show');
       setTimeout(() => authEmailInput.focus(), 50);
 
-      function onConfirm(){
+      function onConfirm() {
         cleanup({ email: authEmailInput.value.trim(), password: pinInput.value });
       }
-      function onCancel(){
+
+      function onCancel() {
         cleanup(null);
       }
-      function onKey(e){
-        if(e.key === 'Enter') onConfirm();
-        if(e.key === 'Escape') onCancel();
+
+      function onKey(e) {
+        if (e.key === 'Enter') onConfirm();
+        if (e.key === 'Escape') onCancel();
       }
-      function cleanup(result){
+
+      function cleanup(result) {
         pinModal.classList.remove('show');
         pinConfirmBtn.removeEventListener('click', onConfirm);
         pinCancelBtn.removeEventListener('click', onCancel);
@@ -998,6 +1166,7 @@
         authEmailInput.removeEventListener('keydown', onKey);
         resolve(result);
       }
+
       pinConfirmBtn.addEventListener('click', onConfirm);
       pinCancelBtn.addEventListener('click', onCancel);
       pinInput.addEventListener('keydown', onKey);
@@ -1005,22 +1174,22 @@
     });
   }
 
-  async function handleAdminLogin(){
+  async function handleAdminLogin() {
     const cred = await askLogin();
-    if(cred === null) return;
-    if(!cred.email || !cred.password){
+    if (cred === null) return;
+    if (!cred.email || !cred.password) {
       alert('Vui lòng nhập email và mật khẩu.');
       return;
     }
-    try{
+    try {
       await auth.signInWithEmailAndPassword(cred.email, cred.password);
-    }catch(e){
+    } catch (e) {
       alert('Sai email hoặc mật khẩu.');
     }
   }
 
   adminFab.addEventListener('click', async () => {
-    if(!isAdmin){
+    if (!isAdmin) {
       await handleAdminLogin();
       return;
     }
@@ -1032,23 +1201,25 @@
   });
 
   adminPanel.addEventListener('click', (e) => {
-    if(e.target === adminPanel) adminPanel.classList.remove('show');
+    if (e.target === adminPanel) adminPanel.classList.remove('show');
   });
 
-  function openAdminPanel(){
+  function openAdminPanel() {
     adminPanel.classList.add('show');
-    if(pendingUnsub) pendingUnsub();
+    if (pendingUnsub) pendingUnsub();
     pendingUnsub = accessCollection.where('status', '==', 'pending').onSnapshot((snap) => {
       const items = snap.docs.filter(d => d.id !== deviceId);
       pendingListEl.innerHTML = '';
-      if(items.length === 0){
+      if (items.length === 0) {
         pendingListEl.innerHTML = '<div class="empty-pending">Không có yêu cầu nào đang chờ.</div>';
         return;
       }
+
       items.forEach((docSnap) => {
         const data = docSnap.data();
         const t = data.requestedAt ? new Date(data.requestedAt) : null;
-        const timeStr = t ? (String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0') + ' · ' + String(t.getDate()).padStart(2,'0') + '/' + String(t.getMonth()+1).padStart(2,'0')) : '';
+        const timeStr = t ? (String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + ' · ' + String(t.getDate()).padStart(2, '0') + '/' + String(t.getMonth() + 1).padStart(2, '0')) : '';
+
         const row = document.createElement('div');
         row.className = 'pending-row';
         row.innerHTML = `
@@ -1058,38 +1229,170 @@
             <button class="deny-btn">Từ chối</button>
           </div>
         `;
+
         row.querySelector('.approve-btn').addEventListener('click', async () => {
           await accessCollection.doc(docSnap.id).set({ status: 'approved', updatedAt: new Date().toISOString() }, { merge: true });
         });
+
         row.querySelector('.deny-btn').addEventListener('click', async () => {
           await accessCollection.doc(docSnap.id).set({ status: 'denied', updatedAt: new Date().toISOString() }, { merge: true });
         });
+
         pendingListEl.appendChild(row);
       });
     });
   }
 
-  // --- Robot Management ---
-  function listenRobots(){
-    robotsRef.orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
-      robots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderRobots();
-    });
+  const detailPanel = document.createElement('aside');
+  detailPanel.className = 'detail-panel';
+  detailPanel.id = 'detailPanel';
+  detailPanel.innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div class="eyebrow detail-eyebrow">Robot status</div>
+        <h2 id="detailRobotName">Robot</h2>
+      </div>
+      <button class="detail-close" id="closeDetailPanel" type="button">✕</button>
+    </div>
+    <div class="detail-status-box">
+      <span class="status-badge repairing" id="detailStatusBadge">Đang sửa</span>
+    </div>
+    <div class="detail-block">
+      <div class="section-label">Ghi chú</div>
+      <div class="detail-notes" id="detailNotesText">Chưa có ghi chú.</div>
+    </div>
+    <div class="detail-actions">
+      <button type="button" class="btn-panel secondary" id="detailEditBtn">Sửa trạng thái & ghi chú</button>
+    </div>
+    <div class="detail-edit-box" id="detailEditBox">
+      <div class="section-label">Cập nhật</div>
+      <div class="form-group">
+        <label class="form-label">Trạng thái</label>
+        <select id="detailStatusSelect" class="form-select">
+          <option value="integrating">🔧 Đang tích hợp</option>
+          <option value="integrated">✅ Đã tích hợp</option>
+          <option value="waiting-software">⌛ Đang đợi cài software</option>
+          <option value="waiting-calib">🎛️ Đang đợi calib</option>
+          <option value="completed">🎉 Hoàn thành</option>
+          <option value="shipped">📦 Đã xuất</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ghi chú</label>
+        <textarea id="detailNotesInput" class="form-textarea" placeholder="Viết ghi chú..."></textarea>
+      </div>
+      <div class="form-actions compact">
+        <button type="button" class="btn-cancel" id="detailCancelEdit">Hủy</button>
+        <button type="button" class="btn-submit" id="detailSaveBtn">Lưu</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(detailPanel);
+
+  const detailRobotName = document.getElementById('detailRobotName');
+  const detailStatusBadge = document.getElementById('detailStatusBadge');
+  const detailNotesText = document.getElementById('detailNotesText');
+  const detailEditBox = document.getElementById('detailEditBox');
+  const detailStatusSelect = document.getElementById('detailStatusSelect');
+  const detailNotesInput = document.getElementById('detailNotesInput');
+  const detailEditBtn = document.getElementById('detailEditBtn');
+  const detailCancelEdit = document.getElementById('detailCancelEdit');
+  const detailSaveBtn = document.getElementById('detailSaveBtn');
+  const closeDetailPanel = document.getElementById('closeDetailPanel');
+
+  function openRobotDetail(robot) {
+    if (!robot) return;
+    currentEditingRobot = robot;
+    const isRepairRobot = robot.type === 'repair';
+    buildStatusSelect(detailStatusSelect, isRepairRobot);
+    detailRobotName.textContent = robot.name || 'Robot';
+    const status = getStatusMeta(robot.status);
+    detailStatusBadge.textContent = status.text;
+    detailStatusBadge.className = 'status-badge ' + status.key;
+    detailNotesText.textContent = robot.notes && robot.notes.trim() ? robot.notes : 'Chưa có ghi chú.';
+    detailStatusSelect.value = isRepairRobot ? getRepairStatusValue(robot.status) : normalizeStatus(robot.status);
+    detailNotesInput.value = robot.notes || '';
+    detailEditBox.classList.remove('show');
+    detailPanel.classList.add('show');
   }
+
+  function closeRobotDetail() {
+    detailPanel.classList.remove('show');
+    currentEditingRobot = null;
+  }
+
+  closeDetailPanel.addEventListener('click', closeRobotDetail);
+  detailPanel.addEventListener('click', (event) => {
+    if (event.target === detailPanel) closeRobotDetail();
+  });
+
+  detailEditBtn.addEventListener('click', () => {
+    detailEditBox.classList.toggle('show');
+  });
+
+  detailCancelEdit.addEventListener('click', () => {
+    detailEditBox.classList.remove('show');
+    if (currentEditingRobot) {
+      const isRepairRobot = currentEditingRobot.type === 'repair';
+      buildStatusSelect(detailStatusSelect, isRepairRobot);
+      detailStatusSelect.value = isRepairRobot ? getRepairStatusValue(currentEditingRobot.status) : normalizeStatus(currentEditingRobot.status);
+      detailNotesInput.value = currentEditingRobot.notes || '';
+    }
+  });
+
+  detailSaveBtn.addEventListener('click', async () => {
+    if (!currentEditingRobot) return;
+    const btn = detailSaveBtn;
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    try {
+      const nextStatus = currentEditingRobot.type === 'repair'
+        ? getRepairStatusValue(detailStatusSelect.value)
+        : normalizeStatus(detailStatusSelect.value);
+
+      await robotsRef.doc(currentEditingRobot.id).update({
+        status: nextStatus,
+        notes: detailNotesInput.value.trim(),
+        updatedAt: new Date().toISOString()
+      });
+      detailEditBox.classList.remove('show');
+      closeRobotDetail();
+    } catch (e) {
+      console.error('Detail save error:', e);
+      alert('Không thể cập nhật robot.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Lưu';
+    }
+  });
 
   function escapeHtml(str) {
     if (!str) return '';
     return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
-  function renderRobots(){
+  function updateSummary() {
+    const total = robots.length;
+    const active = robots.filter((robot) => {
+      const status = normalizeStatus(robot.status);
+      return !['completed', 'shipped', 'done'].includes(status);
+    }).length;
+
+    document.getElementById('summaryTotal').textContent = total;
+    document.getElementById('summaryActive').textContent = active;
+  }
+
+  function renderRobots() {
+    updateSummary();
     robotsGrid.innerHTML = '';
-    if(robots.length === 0){
+    if (robots.length === 0) {
       robotsGrid.innerHTML = `
         <div style="grid-column: 1/-1; text-align: center;">
           <div class="empty-state">
@@ -1102,94 +1405,52 @@
       return;
     }
 
-    robots.forEach(robot => {
+    robots.forEach((robot) => {
+      const statusInfo = getStatusMeta(robot.status);
       const card = document.createElement('div');
       card.className = 'robot-card';
-      const statusInfo = statusMap[robot.status] || statusMap['integrating'];
-
       card.innerHTML = `
-        <div class="robot-header">
-          <div class="robot-icon">${robot.emoji || '🤖'}</div>
-          <div class="robot-name" title="Click để xem/chỉnh sửa ghi chú">${escapeHtml(robot.name)}</div>
-        </div>
-        <div class="robot-status">
-          <div class="status-label">Tiến độ tích hợp</div>
-          <div class="status-bar">
-            ${[0,1,2,3,4,5].map(i => `
-              <div class="status-segment ${i <= statusInfo.step ? (i === statusInfo.step ? 'current' : 'active') : ''}"></div>
-            `).join('')}
-          </div>
-          <div class="status-text">${statusInfo.emoji} ${statusInfo.text}</div>
-          <div class="status-step">Bước ${statusInfo.step + 1} / 6</div>
-        </div>
-        <div style="margin: 12px 0; padding: 12px; background: var(--circuit); border-radius: 4px; font-size: 12px; line-height: 1.4; color: var(--text);">
-          ${robot.description ? escapeHtml(robot.description) : '<em>Không có mô tả</em>'}
-        </div>
-        <div class="robot-actions">
-          <button class="btn-small" data-robot-id="${robot.id}" data-action="edit">✏️ Sửa</button>
-          <button class="btn-small" data-robot-id="${robot.id}" data-action="notes">📝 Ghi chú</button>
-          ${isAdmin ? `<button class="btn-small btn-delete" data-robot-id="${robot.id}" data-action="delete">🗑️ Xoá</button>` : ''}
-        </div>
+        <button class="robot-row" type="button" data-robot-id="${robot.id}">
+          <span class="robot-name-text">${escapeHtml(robot.name)}</span>
+          <span class="status-badge ${statusInfo.key}">${statusInfo.text}</span>
+        </button>
       `;
-
-      card.querySelector('.robot-name').addEventListener('click', () => {
-        openNotesModal(robot);
-      });
-
-      card.querySelectorAll('[data-action]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const action = btn.dataset.action;
-          const robotId = btn.dataset.robotId;
-          const targetRobot = robots.find(r => r.id === robotId);
-          if(action === 'edit') openRobotModal(targetRobot);
-          else if(action === 'notes') openNotesModal(targetRobot);
-          else if(action === 'delete') deleteRobot(robotId);
-        });
-      });
-
+      card.querySelector('.robot-row').addEventListener('click', () => openRobotDetail(robot));
       robotsGrid.appendChild(card);
     });
   }
 
-  function openRobotModal(robot){
+  function listenRobots() {
+    robotsRef.orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+      robots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderRobots();
+    });
+  }
+
+  function openRobotModal(robot, isRepair = false) {
+    repairMode = Boolean(isRepair) || (Boolean(robot) && robot.type === 'repair');
     currentEditingRobot = robot || null;
-    if(robot){
-      modalRobotTitle.textContent = 'Chỉnh sửa robot';
+    buildStatusSelect(robotStatusSelect, repairMode);
+
+    if (robot) {
+      modalRobotTitle.textContent = repairMode ? 'Chỉnh sửa robot sửa chữa' : 'Chỉnh sửa robot';
       robotNameInput.value = robot.name || '';
       robotDescInput.value = robot.description || '';
-      robotStatusSelect.value = robot.status || 'integrating';
+      robotStatusSelect.value = repairMode ? getRepairStatusValue(robot.status) : normalizeStatus(robot.status);
+      robotNotesInput.value = robot.notes || '';
     } else {
-      modalRobotTitle.textContent = 'Thêm robot mới';
+      modalRobotTitle.textContent = repairMode ? 'Thêm robot sửa chữa' : 'Thêm robot mới';
       robotNameInput.value = '';
       robotDescInput.value = '';
-      robotStatusSelect.value = 'integrating';
+      robotStatusSelect.value = 'repairing';
+      robotNotesInput.value = '';
     }
     robotModal.classList.add('show');
     robotNameInput.focus();
   }
 
-  function openNotesModal(robot){
-    currentEditingRobot = robot;
-    modalNotesTitle.textContent = 'Ghi chú - ' + robot.name;
-    robotNotesInput.value = robot.notes || '';
-    notesModal.classList.add('show');
-  }
-
-  async function deleteRobot(robotId){
-    if(!isAdmin){
-      alert('Bạn cần quyền quản trị viên để xóa.');
-      return;
-    }
-    if(confirm('Bạn có chắc chắn muốn xóa robot này?')){
-      try{
-        await robotsRef.doc(robotId).delete();
-      }catch(e){
-        alert('Lỗi khi xóa robot: ' + e.message);
-      }
-    }
-  }
-
-  btnAddRobot.addEventListener('click', () => openRobotModal(null));
+  btnAddRobot.addEventListener('click', () => openRobotModal(null, false));
+  btnAddRepairRobot.addEventListener('click', () => openRobotModal(null, true));
 
   document.getElementById('closeRobotModal').addEventListener('click', () => {
     robotModal.classList.remove('show');
@@ -1201,7 +1462,7 @@
 
   document.getElementById('submitRobotBtn').addEventListener('click', async () => {
     const name = robotNameInput.value.trim();
-    if(!name){
+    if (!name) {
       alert('Vui lòng nhập tên robot.');
       return;
     }
@@ -1210,57 +1471,33 @@
     btn.disabled = true;
     btn.textContent = 'Đang lưu...';
 
-    try{
+    try {
       const data = {
-        name: name,
+        name,
         description: robotDescInput.value.trim(),
-        status: robotStatusSelect.value,
+        status: repairMode ? getRepairStatusValue(robotStatusSelect.value) : normalizeStatus(robotStatusSelect.value),
+        notes: robotNotesInput.value.trim(),
+        type: repairMode ? 'repair' : 'standard',
         emoji: '🤖',
         updatedAt: new Date().toISOString()
       };
 
-      if(currentEditingRobot){
-        await robotsRef.doc(currentEditingRobot.id).update(data);
+      if (currentEditingRobot) {
+        await robotsRef.doc(currentEditingRobot.id).update({
+          ...data,
+          type: currentEditingRobot.type === 'repair' || repairMode ? 'repair' : 'standard'
+        });
       } else {
         data.createdAt = new Date().toISOString();
         await robotsRef.add(data);
       }
       robotModal.classList.remove('show');
-    }catch(e){
+    } catch (e) {
       console.error('Save error:', e);
       alert('Không thể lưu dữ liệu: ' + e.message);
-    }finally{
+    } finally {
       btn.disabled = false;
       btn.textContent = 'Lưu robot';
-    }
-  });
-
-  document.getElementById('closeNotesModal').addEventListener('click', () => {
-    notesModal.classList.remove('show');
-  });
-
-  document.getElementById('cancelNotesBtn').addEventListener('click', () => {
-    notesModal.classList.remove('show');
-  });
-
-  document.getElementById('submitNotesBtn').addEventListener('click', async () => {
-    if(!currentEditingRobot) return;
-    const btn = document.getElementById('submitNotesBtn');
-    btn.disabled = true;
-    btn.textContent = 'Đang lưu...';
-
-    try{
-      await robotsRef.doc(currentEditingRobot.id).update({
-        notes: robotNotesInput.value.trim(),
-        updatedAt: new Date().toISOString()
-      });
-      notesModal.classList.remove('show');
-    }catch(e){
-      console.error('Notes error:', e);
-      alert('Không thể cập nhật ghi chú.');
-    }finally{
-      btn.disabled = false;
-      btn.textContent = 'Cập nhật';
     }
   });
 
