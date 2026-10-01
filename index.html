@@ -814,6 +814,21 @@
     .robots-grid { grid-template-columns: 1fr; }
     .detail-panel { width: 100%; }
   }
+  .robot-workspace { display:none; max-width:1180px; margin:0 auto; position:relative; z-index:1; }
+  .robot-workspace.show { display:block; }
+  body.workspace-open .page { display:none; }
+  .workspace-top { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+  .workspace-back { border:1px solid var(--line); border-radius:12px; color:var(--cyan); background:rgba(10,20,29,.8); padding:11px 15px; font:inherit; font-weight:700; cursor:pointer; }
+  .workspace-heading { flex:1; min-width:0; }
+  .workspace-heading h2 { margin:0; font:700 clamp(22px,4vw,34px) 'Orbitron',sans-serif; overflow-wrap:anywhere; }
+  .workspace-heading p { color:var(--muted); margin:7px 0; }
+  .workspace-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+  .workspace-section { border:1px solid var(--line); border-radius:18px; padding:20px; background:var(--panel); }
+  .workspace-section h3 { margin:0 0 8px; font:700 16px 'Orbitron',sans-serif; color:var(--cyan); }
+  .workspace-section p { color:var(--muted); font-size:13px; line-height:1.5; margin:0 0 14px; }
+  .workspace-section textarea { min-height:210px; }
+  .workspace-actions { display:flex; align-items:center; gap:12px; margin-top:18px; }
+  .workspace-delete { margin-right:auto; border:1px solid rgba(255,93,115,.45); border-radius:12px; padding:12px 14px; background:rgba(255,93,115,.08); color:#ff8293; font-weight:700; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -847,7 +862,6 @@
     <div class="subtitle">Theo dõi trạng thái robot</div>
     <div class="header-actions">
       <button class="btn-primary" id="btnAddRobot">➕ Thêm robot mới</button>
-      <button class="btn-primary" id="btnAddRepairRobot" style="background: linear-gradient(135deg, #ffb74d, #ff8a65);">🛠️ Thêm robot sửa chữa</button>
     </div>
   </header>
 
@@ -951,7 +965,6 @@
 
   const robotsGrid = document.getElementById('robotsGrid');
   const btnAddRobot = document.getElementById('btnAddRobot');
-  const btnAddRepairRobot = document.getElementById('btnAddRepairRobot');
   const robotModal = document.getElementById('robotModal');
   const robotNameInput = document.getElementById('robotNameInput');
   const robotDescInput = document.getElementById('robotDescInput');
@@ -1291,6 +1304,51 @@
 
   document.body.appendChild(detailPanel);
 
+  const workspace = document.createElement('main');
+  workspace.className = 'robot-workspace';
+  workspace.innerHTML = `<div class="workspace-top"><button class="workspace-back" id="workspaceBack">← Danh sách robot</button><div class="workspace-heading"><div class="eyebrow">Hồ sơ robot</div><h2 id="workspaceName"></h2><p id="workspaceDescription"></p><span id="workspaceStatus" class="status-badge"></span><div class="form-group" id="workspaceStatusGroup" style="max-width:320px;margin-top:14px"><label class="form-label" for="workspaceStatusSelect">Trạng thái</label><select class="form-select" id="workspaceStatusSelect"><option value="integrating">Đang tích hợp</option><option value="waiting-software">Đang cài phần mềm</option><option value="completed">Hoàn thiện</option></select></div></div></div><div class="workspace-grid"><section class="workspace-section"><h3>Chi tiết cơ khí</h3><p>Cấu trúc, kích thước, bản vẽ và bảo trì.</p><textarea id="mechanicalDetails" class="form-textarea" placeholder="Nhập chi tiết cơ khí..."></textarea></section><section class="workspace-section"><h3>Linh kiện điện tử</h3><p>Bo mạch, cảm biến, động cơ và kết nối.</p><textarea id="electronicDetails" class="form-textarea" placeholder="Nhập linh kiện điện tử..."></textarea></section><section class="workspace-section"><h3>Phần mềm</h3><p>Phiên bản, cấu hình và ghi chú triển khai.</p><textarea id="softwareDetails" class="form-textarea" placeholder="Nhập thông tin phần mềm..."></textarea></section></div><div class="workspace-actions"><button class="workspace-delete" id="workspaceDelete">Xóa robot</button><span id="workspaceMessage"></span><button class="btn-submit" id="workspaceSave">Lưu thông tin</button></div>`;
+  document.body.appendChild(workspace);
+  let workspaceRobot = null;
+  function openRobotWorkspace(robot) {
+    workspaceRobot = robot;
+    document.getElementById('workspaceName').textContent = robot.name || 'Robot';
+    document.getElementById('workspaceDescription').textContent = robot.description || '';
+    const currentStatus = normalizeStatus(robot.status);
+    const status = ['integrating', 'waiting-software', 'completed'].includes(currentStatus) ? currentStatus : (['shipped', 'done'].includes(currentStatus) ? 'completed' : 'integrating');
+    document.getElementById('workspaceStatusSelect').value = status;
+    const badge = document.getElementById('workspaceStatus');
+    const meta = getStatusMeta(status);
+    badge.textContent = status === 'completed' ? 'Hoàn thiện' : (status === 'waiting-software' ? 'Đang cài phần mềm' : 'Đang tích hợp');
+    badge.className = 'status-badge ' + meta.key;
+    document.getElementById('workspaceStatusGroup').style.display = isAdmin ? '' : 'none';
+    document.getElementById('workspaceSave').style.display = isAdmin ? '' : 'none';
+    document.getElementById('workspaceDelete').style.display = isAdmin ? '' : 'none';
+    const details = robot.technicalDetails || {};
+    document.getElementById('mechanicalDetails').value = details.mechanical || '';
+    document.getElementById('electronicDetails').value = details.electronics || '';
+    document.getElementById('softwareDetails').value = details.software || '';
+    ['mechanicalDetails', 'electronicDetails', 'softwareDetails'].forEach(id => { document.getElementById(id).readOnly = !isAdmin; });
+    document.getElementById('workspaceMessage').textContent = '';
+    document.querySelector('.page').style.display = 'none';
+    workspace.classList.add('show'); document.body.classList.add('workspace-open'); window.scrollTo(0, 0);
+    history.pushState({ robotId: robot.id }, '', '#robot=' + encodeURIComponent(robot.id));
+  }
+  function closeRobotWorkspace() { workspace.classList.remove('show'); document.body.classList.remove('workspace-open'); document.querySelector('.page').style.display = ''; workspaceRobot = null; if (location.hash.startsWith('#robot=')) history.pushState({}, '', location.pathname + location.search); }
+  document.getElementById('workspaceBack').addEventListener('click', closeRobotWorkspace);
+  window.addEventListener('popstate', () => { if (!location.hash.startsWith('#robot=')) closeRobotWorkspace(); });
+  document.getElementById('workspaceSave').addEventListener('click', async () => {
+    if (!isAdmin || !workspaceRobot) return;
+    const technicalDetails = { mechanical: document.getElementById('mechanicalDetails').value.trim(), electronics: document.getElementById('electronicDetails').value.trim(), software: document.getElementById('softwareDetails').value.trim() };
+    const status = document.getElementById('workspaceStatusSelect').value;
+    try { await robotsRef.doc(workspaceRobot.id).update({ technicalDetails, status, updatedAt: new Date().toISOString() }); workspaceRobot.technicalDetails = technicalDetails; workspaceRobot.status = status; const badge = document.getElementById('workspaceStatus'); const meta = getStatusMeta(status); badge.className = 'status-badge ' + meta.key; badge.textContent = status === 'completed' ? 'Hoàn thiện' : (status === 'waiting-software' ? 'Đang cài phần mềm' : 'Đang tích hợp'); document.getElementById('workspaceMessage').textContent = 'Đã lưu.'; }
+    catch (error) { alert('Không thể lưu thông tin robot.'); console.error(error); }
+  });
+  document.getElementById('workspaceDelete').addEventListener('click', async () => {
+    if (!isAdmin || !workspaceRobot || !confirm(`Xóa robot "${workspaceRobot.name}"? Dữ liệu sẽ bị xóa vĩnh viễn.`)) return;
+    try { await robotsRef.doc(workspaceRobot.id).delete(); closeRobotWorkspace(); }
+    catch (error) { alert('Không thể xóa robot.'); console.error(error); }
+  });
+
   const detailRobotName = document.getElementById('detailRobotName');
   const detailStatusBadge = document.getElementById('detailStatusBadge');
   const detailNotesText = document.getElementById('detailNotesText');
@@ -1304,6 +1362,8 @@
 
   function openRobotDetail(robot) {
     if (!robot) return;
+    openRobotWorkspace(robot);
+    return;
     currentEditingRobot = robot;
     const isRepairRobot = robot.type === 'repair';
     buildStatusSelect(detailStatusSelect, isRepairRobot);
@@ -1407,13 +1467,11 @@
     }
 
     robots.forEach((robot) => {
-      const statusInfo = getStatusMeta(robot.status);
       const card = document.createElement('div');
       card.className = 'robot-card';
       card.innerHTML = `
         <button class="robot-row" type="button" data-robot-id="${robot.id}">
           <span class="robot-name-text">${escapeHtml(robot.name)}</span>
-          <span class="status-badge ${statusInfo.key}">${statusInfo.text}</span>
         </button>
       `;
       card.querySelector('.robot-row').addEventListener('click', () => openRobotDetail(robot));
@@ -1451,7 +1509,6 @@
   }
 
   btnAddRobot.addEventListener('click', () => openRobotModal(null, false));
-  btnAddRepairRobot.addEventListener('click', () => openRobotModal(null, true));
 
   document.getElementById('closeRobotModal').addEventListener('click', () => {
     robotModal.classList.remove('show');
@@ -1509,3 +1566,4 @@
 </script>
 </body>
 </html>
+
