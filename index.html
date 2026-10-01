@@ -1337,16 +1337,19 @@
   document.getElementById('workspaceBack').addEventListener('click', closeRobotWorkspace);
   window.addEventListener('popstate', () => { if (!location.hash.startsWith('#robot=')) closeRobotWorkspace(); });
   document.getElementById('workspaceSave').addEventListener('click', async () => {
-    if (!isAdmin || !workspaceRobot) return;
+    if (!workspaceRobot) return;
+    if (!isAdmin) { alert('Thiết bị này chỉ có quyền xem. Hãy đăng nhập bằng tài khoản quản trị để chỉnh sửa robot.'); return; }
     const technicalDetails = { mechanical: document.getElementById('mechanicalDetails').value.trim(), electronics: document.getElementById('electronicDetails').value.trim(), software: document.getElementById('softwareDetails').value.trim() };
     const status = document.getElementById('workspaceStatusSelect').value;
     try { await robotsRef.doc(workspaceRobot.id).update({ technicalDetails, status, updatedAt: new Date().toISOString() }); workspaceRobot.technicalDetails = technicalDetails; workspaceRobot.status = status; const badge = document.getElementById('workspaceStatus'); const meta = getStatusMeta(status); badge.className = 'status-badge ' + meta.key; badge.textContent = status === 'completed' ? 'Hoàn thiện' : (status === 'waiting-software' ? 'Đang cài phần mềm' : 'Đang tích hợp'); document.getElementById('workspaceMessage').textContent = 'Đã lưu.'; }
-    catch (error) { alert('Không thể lưu thông tin robot.'); console.error(error); }
+    catch (error) { console.error('Robot save failed:', error); alert(`Không thể lưu robot (${error.code || 'lỗi'}): ${error.message || 'Hãy kiểm tra quyền truy cập Firestore.'}`); }
   });
   document.getElementById('workspaceDelete').addEventListener('click', async () => {
-    if (!isAdmin || !workspaceRobot || !confirm(`Xóa robot "${workspaceRobot.name}"? Dữ liệu sẽ bị xóa vĩnh viễn.`)) return;
+    if (!workspaceRobot) return;
+    if (!isAdmin) { alert('Thiết bị này chỉ có quyền xem. Hãy đăng nhập bằng tài khoản quản trị để xóa robot.'); return; }
+    if (!confirm(`Xóa robot "${workspaceRobot.name}"? Dữ liệu sẽ bị xóa vĩnh viễn.`)) return;
     try { await robotsRef.doc(workspaceRobot.id).delete(); closeRobotWorkspace(); }
-    catch (error) { alert('Không thể xóa robot.'); console.error(error); }
+    catch (error) { console.error('Robot delete failed:', error); alert(`Không thể xóa robot (${error.code || 'lỗi'}): ${error.message || 'Hãy kiểm tra quyền truy cập Firestore.'}`); }
   });
 
   const detailRobotName = document.getElementById('detailRobotName');
